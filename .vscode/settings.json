@@ -1,0 +1,27 @@
+{
+    "Lua.diagnostics.globals": [
+        "newTemporalSmoothing",
+        "jsonEncode",
+        "jsonDecode",
+        "electrics",
+        "createCurve",
+        "obj",
+        "energyStorage",
+        "linearScale",
+        "damageTracker",
+        "guihooks",
+        "sounds",
+        "sign",
+        "ffi",
+        "ffiObjPtr",
+        "nop",
+        "v",
+        "deepcopy",
+        "shallowcopy",
+        "log",
+        "tableFromHeaderTable",
+        "clamp",
+        "newTemporalSmoothingNonLinear",
+        "vec3"
+    ]
+}

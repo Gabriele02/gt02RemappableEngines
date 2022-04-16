@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="js/gauge.min.js"></script>
+    <title>Tables</title>
+</head>
+<body>
+    <style>
+        input[type="number"] {
+            width: 3em;
+            text-align: right;
+            border: none;
+            background: transparent;
+        }
+        p {
+            margin: 0;
+        }
+        body {
+            background-color: black;
+            color: #ccc;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            filter: brightness(.5);
+            border-spacing: 0;
+            border-width: 0;
+        }
+        canvas {
+            pointer-events: none;
+        }
+    </style>
+    <div class="section" id="boost"></div>
+    <div class="section" id="ignition"></div>
+    <div class="section" id="injector"></div>
+    <div class="section" id="engine-data"></div>
+    <div class="section" id="gauges">
+        <canvas id="rpm"></canvas>
+    </div>
+
+    <button id="save-tune">Save</button>
+    <p>Load Tune</p>
+    <input type="file" id="tune-file" />
+    
+    <a id="downloadAnchorElem" style="display:none"></a>
+    <script type="text/javascript">
+
+        let tuneValues = {};
+        
+        const addMap = (displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, yMax, yStep, cellsMin, cellsMax, cellsRedValue) => {
+            tuneValues[mapName] = {
+                values: {},
+                displayName,
+                unit,
+                sectionName,
+                xName,
+                xMin,
+                xMax,
+                xStep,
+                yName,
+                yMin,
+                yMax,
+                yStep,
+                cellsMin,
+                cellsMax,
+                cellsRedValue
+            }
+        }
+
+        const addMapValue = (mapName, col, row, val) => {
+            const colIndex = Number(col);
+            const rowIndex = Number(row);
+            const value    = Number(val);
+
+            if(tuneValues[mapName] === undefined){
+                throw new Error();
+            }
+
+            if(tuneValues[mapName].values === undefined){
+                tuneValues[mapName].values = {};
+            }
+
+            if(tuneValues[mapName].values[colIndex] === undefined){
+                tuneValues[mapName].values[colIndex] = {};
+            }
+
+            tuneValues[mapName].values[colIndex][rowIndex] = value;
+        }
+
+        const getMapValue = (mapName, col, row) => {
+            const colIndex = Number(col);
+            const rowIndex = Number(row);
+
+            if(tuneValues[mapName].values === undefined){
+                return undefined;
+            }
+
+            if(tuneValues[mapName].values[colIndex] === undefined){
+                return undefined;
+            }
+
+            return tuneValues[mapName].values[colIndex][rowIndex];
+        }
+    
+        const getCellColor = (value, redValue) => {
+            const RED_VALUE = redValue;
+            if(value >= RED_VALUE){
+                return `hsl(0,100%,50%)`
+            }
+
+            const normalizedValue = value / RED_VALUE;
+            const hue = ((1 - normalizedValue) * 120).toString(10);
+            return `hsl(${hue},100%,50%)`;
+        }
+
+        const createTable = (displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, yMax, yStep, cellsMin, cellsMax, cellsRedValue) => {
+            addMap(displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, yMax, yStep, cellsMin, cellsMax, cellsRedValue);
+
+            // Create name
+            const tableNameElement = document.createElement('h1');
+            tableNameElement.textContent = `${displayName} (${unit})`;
+
+            // Create container
+            const div = document.createElement('div');
+            div.id = mapName + '-container';
+            // div.style.position = 'relative';
+            div.appendChild(tableNameElement);
+
+            // Create table
+            const table = document.createElement('table');
+            table.setAttribute('border', 'true');
+            table.style.borderCollapse = 'collapse';
+            table.style.textAlign = 'center';
+            table.id = mapName;
+            div.appendChild(table);
+
+            // Create tbody
+            const tbody = document.createElement('tbody');
+            table.appendChild(tbody)
+            tbody.style.position = 'relative';
+
+            // Fill table
+            const headerRow = tbody.insertRow();
+            const headerCell = headerRow.insertCell();
+            const header = document.createElement('p');
+            header.textContent = yName;
+            header.setAttribute('colspan', (yMax / yStep) / (yMin / yStep) + 2);
+            headerCell.appendChild(header); 
+            for(let y = yMax; y >= yMin; y -= yStep) {
+                const newRow = tbody.insertRow();
+                const valueCell = newRow.insertCell();
+
+                if(y == yMax){
+                    const input = document.createElement("input");
+                    input.setAttribute('type', 'number');
+                    input.setAttribute('value', y);
+                    input.setAttribute('step', '0.1');
+                    input.id = `yMax-${mapName}`;
+                    input.addEventListener('change', (event) => {
+                        document.getElementById(sectionName).innerHTML = '';
+                        const oldValues = tuneValues[mapName].values;
+                        createTable(displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, Number(event.target.value), yStep, cellsMin, cellsMax, cellsRedValue);
+                        tuneValues[mapName].values = {...tuneValues[mapName].values, ...oldValues};
+                        updateTables();
+                    });
+                    input.style.color = '#ffffff';
+                    valueCell.appendChild(input);
+                }else{
+                    const value = document.createElement('p');
+                    value.textContent = y;
+                    valueCell.appendChild(value);
+                }
+                
+                for (let x = xMin; x <= xMax; x += xStep) {
+
+                    // Insert a cell at the end of the row
+                    const newCell = newRow.insertCell();
+
+                    const input = document.createElement("input");
+                    input.setAttribute('type', 'number');
+                    input.setAttribute('value', '0');
+                    input.setAttribute('step', '0.1');
+                    input.id = `${x}-${y}-${mapName}`;
+                    input.addEventListener('input', (event) => {
+                        const val = event.target.value || 0;
+                        const color = getCellColor(val, cellsRedValue);
+                        event.target.parentNode.style.backgroundColor = color; 
+                        addMapValue(mapName, y, x, val);
+                    });
+                    input.min = cellsMin;
+                    input.max = cellsMax;
+                    // Append a text node to the cell
+                    newCell.appendChild(input);
+                    input.dispatchEvent(new Event('input', {bubbles:true}));
+                }
+            }
+
+            const footerRow = tbody.insertRow();
+            let footerCell = footerRow.insertCell();
+            let footer = document.createElement('p');
+            footer.textContent = xName;
+            footerCell.appendChild(footer);
+
+            for (let x = xMin; x <= xMax; x += xStep) {
+                footerCell = footerRow.insertCell();
+                footer = document.createElement('p');
+                footer.textContent = x;
+                footerCell.appendChild(footer); 
+            }
+
+            // Show table
+            const section = document.getElementById(sectionName);
+            section.appendChild(div); 
+
+            // const point = document.createElement('div');
+            // point.id = mapName + '-point';
+            // point.style.position = 'absolute';
+            // // point.style.display = 'none';
+            // point.style.width = '5px';
+            // point.style.height = '5px';
+            // point.style.borderRadius = '50%';
+            // point.style.backgroundColor = 'white';
+            // section.appendChild(point);
+            const canvas = document.createElement('canvas');
+            canvas.id = mapName + '-canvas';
+            canvas.style.position = 'absolute';
+            // point.style.display = 'none';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+            // canvas.style.border = "2px solid red";
+            // canvas.style.zIndex = "999";
+            div.appendChild(canvas);
+
+
+            // const d0 = document.createElement('div');
+            // d0.id = mapName + 'd0';
+            // d0.style.position = 'absolute';
+            // d0.style.width = '100%';
+            // d0.style.height = '5px';
+            // d0.style.backgroundColor = 'red';
+            // section.appendChild(d0);
+
+            // const d1 = document.createElement('div');
+            // d1.id = mapName + 'd1';
+            // d1.style.position = 'absolute';
+            // d1.style.width = '100%';
+            // d1.style.height = '5px';
+            // d1.style.backgroundColor = 'blue';
+            // section.appendChild(d1);
+        }
+
+        const createGauge = () => {
+            // <canvas class="gauge"></canvas>
+            // TODO
+        }
+
+        const updateTables = () => {
+            for (const [mapName, map] of Object.entries(tuneValues)) {
+                document.getElementById(map.sectionName).innerHTML = '';
+                const bkup = tuneValues[mapName].values;
+                createTable(map.displayName, map.unit, map.sectionName, mapName, map.xName, map.xMin, map.xMax, map.xStep, map.yName, map.yMin, map.yMax, map.yStep, map.cellsMin, map.cellsMax, map.cellsRedValue);
+                tuneValues[mapName].values = bkup;
+                let nextMap = false;
+                for(let y = map.yMax; y >= map.yMin && !nextMap; y -= map.yStep) {
+                    for (let x = map.xMin; x <= map.xMax; x += map.xStep) {
+                        const cell = document.getElementById(`${x}-${y}-${mapName}`);
+                        if(!cell){
+                            nextMap = true;
+                            continue;
+                        }
+                        console.log(cell);
+                        cell.value = getMapValue(mapName, y, x);
+                        cell.dispatchEvent(new Event('input', {bubbles:true}));
+                    }
+                }
+            }
+        }
+
+        const downloadTune = () => {
+            const filename = 'tune.json';
+            const tune = JSON.stringify(tuneValues);
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(tune);
+            const dlAnchorElem = document.getElementById('downloadAnchorElem');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", filename);
+            dlAnchorElem.click();
+        }
+
+        const loadTune = (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const contents = event.target.result;
+                tuneValues = JSON.parse(contents);
+                updateTables();
+            };
+            reader.readAsText(file);
+        }
+        function getCoords(elem) { // crossbrowser version
+            let box = elem.getBoundingClientRect();
+
+            let body = document.body;
+            let docEl = document.documentElement;
+
+            let scrollTop = window.pageYOffset || docEl.scrollTop || body.scrollTop;
+            let scrollLeft = window.pageXOffset || docEl.scrollLeft || body.scrollLeft;
+
+            let clientTop = docEl.clientTop || body.clientTop || 0;
+            let clientLeft = docEl.clientLeft || body.clientLeft || 0;
+
+            let top  = box.top +  scrollTop - clientTop;
+            let left = box.left + scrollLeft - clientLeft;
+
+            return { top, left };
+        }
+
+        const init = () => {
+            const MIN_LOAD = 0;
+            const MAX_LOAD = 100;
+            const LOAD_STEP = 10;
+
+            const MIN_RPM = 0;
+            const MAX_RPM = 12000;
+            const RPM_STEP = 500;
+
+            // Create tables
+            // createTable('Boost Table', 'PSI', 'boost', 'boost-table', 'RPM', MIN_RPM, MAX_RPM, RPM_STEP, 'Load', MIN_LOAD, MAX_LOAD, LOAD_STEP, 0, 255, 50);
+            createTable('Ignition Advance Table', 'Degº', 'ignition', 'advance-table', 'RPM', MIN_RPM, MAX_RPM, RPM_STEP, 'MAP', MIN_LOAD, MAX_LOAD, LOAD_STEP, -90, 90, 40);
+            createTable('Injector Duty Table', '%', 'injector', 'injector-table', 'RPM', MIN_RPM, MAX_RPM, RPM_STEP, 'MAP', MIN_LOAD, MAX_LOAD, LOAD_STEP, 0, 90, 40);
+
+            document.getElementById('save-tune').addEventListener('click', () => {downloadTune();})
+            document.getElementById('tune-file').addEventListener('change', (event) => {loadTune(event);})
+
+            // https://bernii.github.io/gauge.js/
+            let opts = {
+                angle: -0.22, // The span of the gauge arc
+                lineWidth: 0.17, // The line thickness
+                radiusScale: 0.76, // Relative radius
+                pointer: {
+                    length: 0.6, // // Relative to gauge radius
+                    strokeWidth: 0.057, // The thickness
+                    color: '#FFFFFF' // Fill color
+                },
+                limitMax: false,     // If false, max value increases automatically if value > maxValue
+                limitMin: false,     // If true, the min value of the gauge will be fixed
+                colorStart: '#6FADCF',   // Colors
+                colorStop: '#8FC0DA',    // just experiment with them
+                strokeColor: '#E0E0E0',  // to see which ones work best for you
+                generateGradient: true,
+                highDpiSupport: true,     // High resolution support
+                
+            };
+            let target = document.querySelector('canvas#rpm'); // your canvas element
+            let gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+            gauge.maxValue = 7500; // set max gauge value
+            gauge.setMinValue(0);  // Prefer setter over gauge.minValue = 0
+            gauge.animationSpeed = 1; // set animation speed (32 is default value)
+
+
+            const drawDataPoint = (data) => {
+                gauge.set(data['rpm']); // set actual value
+                const section = document.getElementById('engine-data');
+                section.innerHTML = '';
+                Object.keys(data).forEach((key, index) => {
+                    const p = document.createElement("p");
+                    p.innerHTML = `${key}: ${data[key]}`;
+                    section.appendChild(p);
+                });
+                for (const [mapName, map] of Object.entries(tuneValues)) {
+                    // TODO: check if the table uses this data
+                    const mapElement = document.getElementById(mapName);
+                    if(!mapElement){
+                        continue;
+                    }
+                    const canvas = document.getElementById(mapName + '-canvas');
+                    const ctx = canvas.getContext('2d');
+                    let style = canvas.style;
+                    
+                    // TODO: optimize
+                    const topLeftCell = document.querySelector(`#${mapName} tr:nth-child(2) td:nth-child(2)`);
+                    const bottomRightCell = document.querySelector(`#${mapName} tr:nth-last-child(2) td:last-child`);
+                    // topLeftCell.style.backgroundColor = 'red';
+                    // bottomRightCell.style.backgroundColor = 'blue';
+                    // const topLeft = topLeftCell.getBoundingClientRect();
+                    // const bottomRight = bottomRightCell.getBoundingClientRect();
+                    const topLeft = getCoords(topLeftCell);
+                    const bottomRight = getCoords(bottomRightCell);
+                    const bottomRightBB = bottomRightCell.getBoundingClientRect();
+                    bottomRight.bottom = bottomRight.top + bottomRightBB.height;
+                    bottomRight.right = bottomRight.left + bottomRightBB.width;
+                    // Resize canvas
+                    {
+                        style.left = topLeft.left + 'px';
+                        style.top = topLeft.top + 'px';
+                        style.width = (bottomRight.right - topLeft.left) + 'px';
+                        style.height = (bottomRight.bottom - topLeft.top) + 'px';
+                        canvas.width = (bottomRight.right - topLeft.left);
+                        canvas.height = (bottomRight.bottom - topLeft.top);
+                    }
+                    
+                    // let canvasData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    // Draw marker
+                    
+                    // rpm : xMax = x : width ==> x = rpm * width / xMax
+                    let x = data[map.xName.toLocaleLowerCase()] / map.xMax * canvas.width;
+                    let y = (1 - data[map.yName.toLocaleLowerCase()] / map.yMax) * canvas.height;
+                    
+                    // const index = (x + y * canvas.width) * 4;
+                    // canvasData.data[index + 0] = 255;
+                    // canvasData.data[index + 1] = 255;
+                    // canvasData.data[index + 2] = 255;
+                    // canvasData.data[index + 3] = 255;
+                    ctx.fillStyle = "#fff";
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillRect(x - 5,  y - 5, 10, 10);
+
+                    // ctx.putImageData(canvasData, 0, 0);
+                }
+            }
+            
+            const getData = () => {
+                fetch(
+                    'http://localhost:42069/engineData.json',
+                ).then((response) => {
+                    return response.json();
+                }).then((json) => {
+                    setTimeout(() => {
+                       
+                       try{
+                           getData();
+                       }catch(e){}
+                       drawDataPoint(json);
+                    }, 1);
+                }).catch((e) => {setTimeout(() => {
+                       
+                       try{
+                           getData();
+                       }catch(e){}
+                    }, 1);});
+            }
+            getData();
+        }
+
+        document.onload = init();
+        
+    </script>
+</body>
+</html>
