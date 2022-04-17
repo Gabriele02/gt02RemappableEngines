@@ -1,6 +1,10 @@
 
 local M = {}
 
+local function logistic(x, x0, k, l)
+    return l / (1 + math.exp(-k * (x - x0)))
+end
+
 -- This function pulls a value from a 3D table given a target for X and Y coordinates.
 -- It performs a 2D linear interpolation as described in: www.megamanual.com/v22manual/ve_tuner.pdf
 local function get3DTableValue(table, x, y, p)
@@ -95,6 +99,7 @@ local engineMeasurements = {
   thermal_efficiency =  0,
   volumetric_efficiency =  0,
   throttle_body_diameter_cm =  0,
+  throttle_body_max_flow = 0,
 }
 -- local air_density = 1 -- should be based on temperature
 -- local fuel_density = 1.3 -- ^^
@@ -116,68 +121,7 @@ local config = nil
 local engineFunctions = nil
 
 local prev_data = {}
-local ws = require('utils/simpleHttpServer')
-local handlers = {
-  {'/engineData.json', function()
-    local s = jsonEncode(ecu.tuneOutData)
-    return
-    [[HTTP/1.1 200 OK
-Server: BeamNG.web/0.1.0
-Connection: keep-alive
-Content-Length: ]] .. string.len(s) .. [[
-
-Content-Type: application/json
-Access-Control-Allow-Origin: *
-
-]] .. s
-  end},
-  {'/js/gauge.min.js', function(_, path)
-    local body = readFile('js/gauge.min.js')
- 
-  return [[
-HTTP/1.1 200 OK
-Server: BeamNG.web/0.1.0
-Connection: close
-Content-Length: ]] .. string.len(body) .. [[
-
-Content-Type: text/javascript
-
-]] .. body
-  end
-  },
-  {'/', function()
-    local body = readFile('tuner.html')
- 
-  return [[
-HTTP/1.1 200 OK
-Server: BeamNG.web/0.1.0
-Connection: close
-Content-Length: ]] .. string.len(body) .. [[
-
-Content-Type: text/html
-
-]] .. body
-  end
-  },
-  }
-
-local function resetWS()
-  print('RESETTING')
-	-- if engine ~= nil then
-  --   return
-  ws.stop()
-	-- end
-	local listenHost = '127.0.0.1'
-  local httpListenPort = 42069
-  ws.start(listenHost, httpListenPort, '/', handlers, function(req, path)
-  return {
-    httpPort = httpListenPort,
-    wsPort = httpListenPort + 1,
-    host = listenHost,
-  }
-  end)
-end
-
+local tunerServer = require("tunerServer/tunerServer")
 local function reloadTuneFromFile()
 	local tuneFilePath = "mods/yourTunes" .. v.config.partConfigFilename .. "/tune.json"
 	local tuneFile = io.open(tuneFilePath, "r")
@@ -227,11 +171,14 @@ local function calculateTorque(dt)
 	-- local displacement_ci = engineMeasurements.displacement_cc / 16.387064
 
 	local RPM = math.abs(engine.outputRPM)
-	
+
 	local throttle =  electrics.values[engine.electricsThrottleName]
 	-- if engine.outputRPM > 0 and engine.outputRPM < 700 then
-    local idleThrottle = math.min(1 / ((engine.outputRPM/600 + 1) ^2 ), 1)
-		throttle = math.min(idleThrottle + throttle, 1)
+  local idleThrottle = math.min(1 / ((engine.outputRPM/600 + 1) ^2 ), 1)
+  if RPM > 600 * 2 then
+    idleThrottle = 0
+  end
+  throttle = math.min(idleThrottle + throttle * (1 - idleThrottle), 1)
 	-- end
   -- print(throttle)
   throttle = ecu.throttleSmoother:getUncapped(throttle, dt)
@@ -260,7 +207,7 @@ local function calculateTorque(dt)
 	local simulated_diameter = 2 * math.sqrt(opening / math.pi)
 	-- print("opening: " .. opening .. ", diameter: " .. simulated_diameter)
 	local simulated_diameter_in = simulated_diameter * conversions.cm_to_in
-	local indicated_air_mass_flow = 100 * engine.intakeAirDensityCoef * (RPM / 2) * engineMeasurements.volumetric_efficiency * (engineMeasurements.displacement_cc / 1000) * (28.97 --[[MM Air]]) / (8.314--[[R]])
+	local indicated_air_mass_flow = --[[100 *]] (engine.intakeAirDensityCoef +((electrics.values.turboBoost or 0) * (throttle <= 0 and 0 or 1) / 14.7)) * (RPM * 100 / 293.15 / 2 / 60 ) * engineMeasurements.volumetric_efficiency * (engineMeasurements.displacement_cc / 1000) * (28.97 --[[MM Air]]) / (8.314--[[R]])
 	-- --[[
 	-- 	https://www.engineersedge.com/fluid_flow/flow_of_air_in_pipes_14029.htm
 	-- 	https://esenssys.com/air-velocity-flow-rate-measurement/#:~:text=Mass%20Flow%20Rate%20(%E1%B9%81)%20%3D,rate%20of%204.703%20kg%2Fs.
@@ -272,15 +219,37 @@ local function calculateTorque(dt)
 	-- local pressure_drop = (2 * (air_speed_ft_s ^ 2))/(25000 * simulated_diameter_in + 1e-30)
 	-- print("TEST: " .. (pressure_drop * 0.0625) .. ' PSI')
 
-	local m3_of_air = 0.000773455 * indicated_air_mass_flow
+	local m3_of_air = indicated_air_mass_flow / 1000
+  --/ 1.225
+  -- every 50 ticks print the next line
+  if tick % 50 == 0 then
+    print("m3_of_air: " .. m3_of_air .. ", m3_of_air/throttle_body_max_flow: " .. m3_of_air/(engineMeasurements.throttle_body_max_flow * throttle))
+  end
 	local air_speed_m_s = (m3_of_air / (1.225 * opening))
 	-- print("velocity: " .. air_speed_m_s)
 	local air_speed_ft_s = air_speed_m_s * 0.911344
-	local pressure_drop = (2 * (air_speed_ft_s ^ 2))/(25000 * simulated_diameter_in + 1e-30)
+
+	local pressure_drop = logistic(m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2)* throttle))), 2, 2, 14.7)
+  --(0.1 * (air_speed_ft_s ^ 2))/(25000 * simulated_diameter_in + 1e-30)
+  --pressure_drop = 
+  --(0.5 * 77--[[0.77]] * 1.225 * air_speed_m_s^2) / 1000 / 6894.76
+  --air_speed_m_s^2 / (simulated_diameter * 0.001) / 1000 / 6894.76
+  --  (0.5 * 0.77 * 1.225 * air_speed_m_s)
+  if tick % 50 == 0 then
+  --   -- print("air_speed: " .. air_speed_m_s)
+    print("pressure_drop: " .. pressure_drop)
+    print("throttle: " .. throttle)
+  --   -- local k = 0.77
+  --   -- print("pressure_drop2: " .. (0.5 * k * 1.225 * air_speed_m_s) / 1000 * 0.00014503773773)
+  --   print("simulated_diameter: " .. simulated_diameter)
+  end
+  -- pressure_drop = (air_speed_m_s * air_speed_m_s) / (2 * opening) / 1000 / 6894.76
+
+    -- print("pressure_drop: " .. pressure_drop)
 	-- print("pressure_drop: " .. (pressure_drop * 0.0625))
   -- print(engine.forcedInductionCoef)
 	-- local MAP = 100 * math.sqrt(throttle)-- Kpa
-	local intake_air_pressure = 287.058 * (1.225 * (engine.intakeAirDensityCoef + ((electrics.values.turboBoost or 0) / 14.7)--[[* engine.forcedInductionCoef]])) * 293 / 1000
+	local intake_air_pressure = 287.058 * (1.225 * (engine.intakeAirDensityCoef + ((electrics.values.turboBoost or 0) * (throttle <= 0 and 0 or 1) / 14.7)--[[* engine.forcedInductionCoef]])) * 293 / 1000
   -- if tick % 50 == 0 then
   -- 	-- print("intake_air_pressure: " .. intake_air_pressure)
   -- 	-- print("engine.forcedInductionCoef: " .. engine.forcedInductionCoef)
@@ -466,6 +435,7 @@ local function calculateTorque(dt)
 		ecu.tuneOutData.map =  string.format("%.2f", MAP)
 		ecu.tuneOutData.max_pressure_point_dATDC =  string.format("%.2f", max_pressure_point_dATDC)
 	-- }
+  tunerServer.setOutData(ecu.tuneOutData)
 	-- ws.update()
 	return torque
 end
@@ -492,6 +462,9 @@ local function init(localEngine, jbeamData)
   engineMeasurements.thermal_efficiency = jbeamData.thermal_efficiency
   engineMeasurements.volumetric_efficiency = jbeamData.volumetric_efficiency
   engineMeasurements.throttle_body_diameter_cm = jbeamData.throttle_body_diameter_cm
+  engineMeasurements.throttle_body_max_flow = jbeamData.throttle_body_max_flow
+
+---@diagnostic disable-next-line: undefined-field
 	local points = table.new(3, 0)
 	points[0] = {0, 0.5}
 	points[1] = {1, 0.5}
@@ -554,8 +527,8 @@ local function init(localEngine, jbeamData)
 	-- local tuneFle = readFile('data/tune.json')
 
 	reloadTuneFromFile()
-	resetWS(ecu)
-    print('created http server')
+	tunerServer.reset()
+  print('created http server')
 end
 
 -- local function initSecondStage()
@@ -570,7 +543,7 @@ local function resetECU()
   ecu.tuneOutData.map = 0
   ecu.tuneOutData.max_pressure_point_dATDC = 0
   ecu.tuneOutData.lambda = 0
-	resetWS()
+	tunerServer.reset()
 	reloadTuneFromFile()
 end
 
@@ -868,7 +841,7 @@ local function updateFuelUsage(device)
 end
 
 local function updateGFX(device, dt)
-  ws.update()
+  tunerServer.update()
   engineFunctions.updateGFX(device, dt)
 end
 

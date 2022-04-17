@@ -22,6 +22,7 @@
         "tableFromHeaderTable",
         "clamp",
         "newTemporalSmoothingNonLinear",
-        "vec3"
+        "vec3",
+        "readFile"
     ]
 }

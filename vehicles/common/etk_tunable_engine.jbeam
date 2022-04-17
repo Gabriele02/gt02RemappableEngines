@@ -51,12 +51,13 @@
 
         "compression_ratio":9.5,
         "stroke_cm":9.46,
-        "bore_cm":10,//8.2,
+        "bore_cm":8.2,
         "num_cylinders":6,
-        "injector_cc_min": 450,//350,
+        "injector_cc_min": 350,
         "thermal_efficiency":0.26,
         "volumetric_efficiency":0.8,
         "throttle_body_diameter_cm":4,
+        "throttle_body_max_flow":0.3, // m^3/s
         
         // Just to keep the powertrain happy
         "torque":[
