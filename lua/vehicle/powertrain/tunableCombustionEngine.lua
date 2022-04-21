@@ -239,6 +239,11 @@ local function calculateTorque(dt)
   --   -- print("air_speed: " .. air_speed_m_s)
     print("pressure_drop: " .. pressure_drop)
     print("throttle: " .. throttle)
+    print("engine.instantAfterFireCoef: " .. engine.instantAfterFireCoef)
+    -- print the following lines every 50 ticks
+    print("engine.instantAfterFireTimer: " .. (engine.instantAfterFireTimer or 0))
+    print("engine.slowIgnitionErrorChance: " .. engine.slowIgnitionErrorChance)
+    print("engine.slowIgnitionErrorInterval: " .. engine.slowIgnitionErrorInterval)
   --   -- local k = 0.77
   --   -- print("pressure_drop2: " .. (0.5 * k * 1.225 * air_speed_m_s) / 1000 * 0.00014503773773)
   --   print("simulated_diameter: " .. simulated_diameter)
@@ -351,7 +356,7 @@ local function calculateTorque(dt)
 			end
 		end
 
-		local combustion_pressure = engineMeasurements.compression_ratio * 9 * MAP/100 -- Manca VE (9 ~ perché si lol)
+		local combustion_pressure = engineMeasurements.compression_ratio * 17 * MAP/100 -- Manca VE (9 ~ perché si lol)
 		if ignition_advance_deg > 0 then
 			combustion_pressure = combustion_pressure + (ignition_advance_deg * 2)
 
@@ -391,9 +396,12 @@ local function calculateTorque(dt)
 			prev_data.modified = true
 			-- print("HEREEEEEEEEE")
 		end
-		local mean_exhaust_pressure = (combustion_pressure + 1) / 2
-		local MEP_approx = ((-mean_compression_pressure * (9 * --[[Perché si lol]] (1-detonationFactor)) * 2) + combustion_pressure * detonationFactor + mean_exhaust_pressure * 2) / 5 * conversions.bar_to_psi
-		-- print('cp: ' .. mean_compression_pressure .. ', cc' .. combustion_pressure .. ', iad' .. ignition_advance_deg )
+		local mean_exhaust_pressure = (combustion_pressure/50 + 1) / 2
+		-- local mean_exhaust_pressure = (combustion_pressure + 1) / 2
+		local MEP_approx = ((-mean_compression_pressure * (9 * --[[Perché si lol]] (1-detonationFactor))) * 2 + combustion_pressure * detonationFactor - mean_exhaust_pressure * 2) / 5 * conversions.bar_to_psi
+		if tick % 50 == 0 then
+      print('MEP_approx: ' .. MEP_approx)
+    end
 
 		local p = MEP_approx
 
@@ -419,7 +427,9 @@ local function calculateTorque(dt)
 		local afr_power_factor = afr_power_curve[math.max(math.min(math.floor(air_fuel_ratio * 10), 270), 0)] or 0
 		local SHP = IHP * engineMeasurements.thermal_efficiency * afr_power_factor-- * engine.forcedInductionCoef--* (engineMeasurements.volumetric_efficiency * MAP / 100)
 		torque = (RPM < 100 or SHP < 0.5) and 0 or (math.min(((SHP * 5280 / (RPM + 1e-30)) * 1.3558), 10000000)) * engine.outputTorqueState * fuel_misfire
-		-- print('RPM: ' .. RPM .. ', throttle: ' .. throttle .. ', SHP: ' .. SHP .. ', torque: ' .. torque .. ', air_fuel_ratio: ' .. air_fuel_ratio ..', afr_power_factor: ' .. afr_power_factor)
+    if tick % 50 == 0 then
+		  print('RPM: ' .. RPM .. ', throttle: ' .. throttle .. ', SHP: ' .. SHP .. ', torque: ' .. torque .. ', air_fuel_ratio: ' .. air_fuel_ratio ..', afr_power_factor: ' .. afr_power_factor)
+    end
 	end
 	-- print('afr: ' .. air_fuel_ratio .. ', throttle: ' .. throttle)
 
