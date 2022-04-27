@@ -174,10 +174,10 @@ local function calculateTorque(dt)
 
 	local throttle =  electrics.values[engine.electricsThrottleName]
 	-- if engine.outputRPM > 0 and engine.outputRPM < 700 then
-  local idleThrottle = math.min(1 / ((engine.outputRPM/600 + 1) ^2 ), 1)
-  if RPM > 600 * 2 then
-    idleThrottle = 0
-  end
+  local idleThrottle = math.min(1 / ((engine.outputRPM/600 + 1) ^4 ), 1)
+  -- if RPM > 600 * 2 then
+  --   idleThrottle = 0
+  -- end
   throttle = math.min(idleThrottle + throttle * (1 - idleThrottle), 1)
 	-- end
   -- print(throttle)
@@ -221,15 +221,21 @@ local function calculateTorque(dt)
 
 	local m3_of_air = indicated_air_mass_flow / 1000
   --/ 1.225
-  -- every 50 ticks print the next line
-  if tick % 50 == 0 then
-    print("m3_of_air: " .. m3_of_air .. ", m3_of_air/throttle_body_max_flow: " .. m3_of_air/(engineMeasurements.throttle_body_max_flow * throttle))
-  end
+
 	local air_speed_m_s = (m3_of_air / (1.225 * opening))
 	-- print("velocity: " .. air_speed_m_s)
 	local air_speed_ft_s = air_speed_m_s * 0.911344
 
-	local pressure_drop = logistic(m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2)* throttle))), 2, 2, 14.7)
+	-- local pressure_drop = logistic(m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2)* throttle))), 2, 2, 14.7)
+	local pressure_drop = logistic(m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2) * (throttle ^ 0.75)))), 2, 1, 14.7)
+  
+	-- local pressure_drop = m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos(math.pi / 2* throttle)))  *14.7
+	-- local pressure_drop = m3_of_air/(engineMeasurements.throttle_body_max_flow * throttle) *14.7
+
+  if tick % 50 == 0 then
+    print("m3_of_air: " .. m3_of_air .. ", pressure_drop: " .. pressure_drop .. ", " .. m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2) * (throttle ^ 0.75)))))
+  end
+
   --(0.1 * (air_speed_ft_s ^ 2))/(25000 * simulated_diameter_in + 1e-30)
   --pressure_drop = 
   --(0.5 * 77--[[0.77]] * 1.225 * air_speed_m_s^2) / 1000 / 6894.76
@@ -237,13 +243,13 @@ local function calculateTorque(dt)
   --  (0.5 * 0.77 * 1.225 * air_speed_m_s)
   if tick % 50 == 0 then
   --   -- print("air_speed: " .. air_speed_m_s)
-    print("pressure_drop: " .. pressure_drop)
-    print("throttle: " .. throttle)
-    print("engine.instantAfterFireCoef: " .. engine.instantAfterFireCoef)
+    -- print("pressure_drop: " .. pressure_drop)
+    -- print("throttle: " .. throttle)
+    -- print("engine.instantAfterFireCoef: " .. engine.instantAfterFireCoef)
     -- print the following lines every 50 ticks
-    print("engine.instantAfterFireTimer: " .. (engine.instantAfterFireTimer or 0))
-    print("engine.slowIgnitionErrorChance: " .. engine.slowIgnitionErrorChance)
-    print("engine.slowIgnitionErrorInterval: " .. engine.slowIgnitionErrorInterval)
+    -- print("engine.instantAfterFireTimer: " .. (engine.instantAfterFireTimer or 0))
+    -- print("engine.slowIgnitionErrorChance: " .. engine.slowIgnitionErrorChance)
+    -- print("engine.slowIgnitionErrorInterval: " .. engine.slowIgnitionErrorInterval)
   --   -- local k = 0.77
   --   -- print("pressure_drop2: " .. (0.5 * k * 1.225 * air_speed_m_s) / 1000 * 0.00014503773773)
   --   print("simulated_diameter: " .. simulated_diameter)
@@ -263,7 +269,9 @@ local function calculateTorque(dt)
   
 	local IAT = 293.15 -- Kelvin
 	local IMAP = RPM * MAP / IAT / 2
-	-- print('MAP: ' ..  MAP)
+  if tick % 50 == 0 then
+    print('MAP: ' ..  MAP)
+  end
 	-- where RPM is engine speed in revolutions per minute
 	-- MAP (manifold absolute pressure) is measured in KPa
 	-- IAT (intake air temperature) is measured in degrees Kelvin.
