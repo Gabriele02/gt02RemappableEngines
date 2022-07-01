@@ -362,6 +362,10 @@ local function calculateTorque(dt)
 			if math.random() < math.abs(max_pressure_point_dATDC / 20) ^ 5 then
 				engine:lockUp()
 			end
+      if true --[[Knock detector enabled]] and engine.ignitionCoef > 0 and max_pressure_point_dATDC < -2 then
+        --throttle = 0
+        return 0 --TODO: find a better way to do knock detection and ignition cut
+      end
 		end
 
 		local combustion_pressure = engineMeasurements.compression_ratio * 17 * MAP/100 -- Manca VE (9 ~ perché si lol)
