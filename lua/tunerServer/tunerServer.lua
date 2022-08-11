@@ -2,6 +2,9 @@ local M = {}
 
 local outData = {}
 
+local listenHost = '127.0.0.1'
+local httpListenPort = 42069
+
 local ws = require('utils/simpleHttpServer')
 local handlers = {
   {
@@ -34,6 +37,33 @@ Content-Type: text/javascript
 ]] .. body
     end
   },
+  {
+    '/command',
+    function(req, path)
+      local commands = split(req.uri.query, '&')
+      for index, command in ipairs(commands) do
+        local cmd = split(command, '=')
+        if cmd[1] == 'RpmOverwrite' then
+          RpmOverwrite = tonumber(cmd[2])
+        end
+        if cmd[1] == 'MapOverwrite' then
+          MapOverwrite = tonumber(cmd[2])
+        end
+        if cmd[1] == 'TuningCheatOverwrite' then
+          TuningCheatOverwrite = cmd[2] == 'true'
+        end
+      end
+      local body = readFile('js/gauge.min.js')
+      return [[HTTP/1.1 200 OK
+Server: BeamNG.web/0.1.0
+Connection: close
+Content-Length: ]] .. string.len(body) .. [[
+
+Content-Type: text/javascript
+
+]] .. body
+    end
+  },
   {'/',
     function()
       local body = readFile('tuner.html')
@@ -51,8 +81,19 @@ Content-Type: text/html
 
 local function reset()
   ws.stop()
-  local listenHost = '127.0.0.1'
-  local httpListenPort = 42069
+  local configFilePath = "mods/yourTunes/tunerServerConfig.txt"
+  local configFile = io.open(configFilePath, "r")
+
+  if configFile ~= nil then
+    io.input(configFile)
+    local configStr = io.read()
+    io.close(configFile)
+
+    local config = split(configStr, ':')
+    listenHost = config[1]
+    httpListenPort = config[2]
+  end
+  -- dumpToFile("tunerServer.log", "Starting server with config = " .. listenHost .. ":" .. httpListenPort)
   ws.start(listenHost, httpListenPort, '/', handlers,
     function(req, path)
       return {

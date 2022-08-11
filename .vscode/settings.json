@@ -23,6 +23,26 @@
         "clamp",
         "newTemporalSmoothingNonLinear",
         "vec3",
-        "readFile"
+        "readFile",
+        "damageTracker",
+        "nop",
+        "v",
+        "vec3",
+        "log",
+        "createCurve",
+        "deepcopy",
+        "newTemporalSmoothing",
+        "newTemporalSmoothingNonLinear",
+        "clamp",
+        "tableFromHeaderTable",
+        "shallowcopy",
+        "ffiObjPtr",
+        "sign",
+        "ffi",
+        "electrics",
+        "energyStorage",
+        "obj",
+        "jsonDecode",
+        "split"
     ]
 }

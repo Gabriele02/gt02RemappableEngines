@@ -55,26 +55,34 @@
         "num_cylinders":6,
         "injector_cc_min": 350,
         "thermal_efficiency":0.26,
-        "volumetric_efficiency":0.8,
         "throttle_body_diameter_cm":4,
-        "throttle_body_max_flow":0.3, // m^3/s
-        
+        "throttle_body_max_flow":0.1, // m^3/s
+        "volumetric_efficiency":[
+            ["rpm", "ve"],
+            [0, 0.5],
+            [1, 0.5],
+            [1000, 0.8],
+            [4000, 0.88],
+            [6000, 0.8],
+            [7500, 0.7],
+        ],
         // Just to keep the powertrain happy
         "torque":[
             ["rpm", "torque"],
             [0, 0],
-            [350, 160],
-            [700, 225],
-            [1000, 263],
-            [2000, 319.5],
-            [2500, 347],
-            [3000, 353],
-            [4000, 354],
-            [4500, 339],
-            [5000, 332],
-            [6000, 329],
-            [7000, 308],
-            [7500, 264],
+            //[350, 160],
+            //[700, 225],
+            //[1000, 263],
+            //[2000, 319.5],
+            //[2500, 347],
+            //[3000, 353],
+            //[4000, 354],
+            //[4500, 339],
+            //[5000, 332],
+            //[6000, 329],
+            //[7000, 308],
+            //[7500, 264],
+            [7500, 0],
         ],
 
         "idleRPM":650,
@@ -87,9 +95,9 @@
         "burnEfficiency":[
             [0, 0.14],
             [0.05, 0.33],
-            [0.4, 0.51],
+            [0.4, 0.45],
             [0.7, 0.44],
-            [1, 0.32],
+            [1, 0.40],
         ],
         //fuel system
         "energyStorage": "mainTank",
@@ -149,16 +157,22 @@
         //engine deform groups
         "deformGroups":["mainEngine", "mainEngine_intake", "mainEngine_accessories"]
     },
-    "soundConfig": {
+        "soundConfig": {
         "sampleName": "I6_2_engine",
         "intakeMuffling": 1,
 
-        "mainGain": -10,
+        "mainGain": -7,
         "onLoadGain":1,
-        "offLoadGain":0.53,
+        "offLoadGain":0.63,
 
         "maxLoadMix": 0.7,
         "minLoadMix": 0,
+
+        "lowShelfGain":-1,
+        "lowShelfFreq":150,
+
+        "highShelfGain":2,
+        "highShelfFreq":6000,
 
         "eqLowGain": 6,
         "eqLowFreq": 250,
@@ -168,24 +182,24 @@
         "eqHighFreq": 1500,
         "eqHighWidth": 0.15,
 
-        "lowShelfGain":-1,
-        "lowShelfFreq":150,
-
-        "highShelfGain":2,
-        "highShelfFreq":6000,
-
         "fundamentalFrequencyCylinderCount":6,
         "eqFundamentalGain": -5,
     },
     "soundConfigExhaust": {
         "sampleName": "I6_2_exhaust",
 
-        "mainGain": 3,
+        "mainGain": 0,
         "onLoadGain":1,
-        "offLoadGain":0.40,
+        "offLoadGain":0.25,
 
         "maxLoadMix": 0.7,
         "minLoadMix": 0,
+
+        "lowShelfGain":-4,
+        "lowShelfFreq":150,
+
+        "highShelfGain":-14,
+        "highShelfFreq":5500,
 
         "eqLowGain": -6,
         "eqLowFreq": 1200,
@@ -194,12 +208,6 @@
         "eqHighGain": -3,
         "eqHighFreq": 3000,
         "eqHighWidth": 0.2,
-
-        "lowShelfGain":6,
-        "lowShelfFreq":450,
-
-        "highShelfGain":-14,
-        "highShelfFreq":5500,
 
         "fundamentalFrequencyCylinderCount":6,
         "eqFundamentalGain": -4,

@@ -1,4 +1,5 @@
 local M = {}
+M.physicalQuantityType = "physicalquantity"
 M.__moduleName__ = "PhysicalQuantity"
 M.__author__ = "gt02"
 M.__version__ = "0.0.1"
@@ -32,18 +33,44 @@ local function findInTable(t, val)
 end
 
 local function areUnitsEqual(a, b)
-    -- pdump(a)
-    -- pdump(b)
-    if #a.numerator ~= #b.numerator or #a.denominator ~= #b.denominator then
-        return false
+    local an = { table.unpack(a.numerator) }
+    local ad = { table.unpack(a.denominator) }
+
+    local bn = { table.unpack(b.numerator) }
+    local bd = { table.unpack(b.denominator) }
+
+    local occurrences = {n = {}, d = {}}
+    for _index, unit in ipairs(an) do
+        if occurrences.n[unit] == nil then
+            occurrences.n[unit] = 0
+        end
+        occurrences.n[unit] = occurrences.n[unit] + 1
     end
-    for _index, unit in ipairs(a.numerator) do
-        if findInTable(b.numerator, unit) == nil then
+    for _index, unit in ipairs(bn) do
+        if occurrences.n[unit] == nil then
+            occurrences.n[unit] = 0
+        end
+        occurrences.n[unit] = occurrences.n[unit] - 1
+    end
+    for _index, unit in ipairs(ad) do
+        if occurrences.d[unit] == nil then
+            occurrences.d[unit] = 0
+        end
+        occurrences.d[unit] = occurrences.d[unit] + 1
+    end
+    for _index, unit in ipairs(bd) do
+        if occurrences.d[unit] == nil then
+            occurrences.d[unit] = 0
+        end
+        occurrences.d[unit] = occurrences.d[unit] - 1
+    end
+    for unit, occ in pairs(occurrences.d) do
+        if occ ~= 0 then
             return false
         end
     end
-    for _index, unit in ipairs(a.denominator) do
-        if findInTable(b.denominator, unit) == nil then
+    for unit, occ in pairs(occurrences.n) do
+        if occ ~= 0 then
             return false
         end
     end
@@ -56,6 +83,13 @@ local function unitsToString(units)
         str = str .. unit .. "*"
     end
     str = str.sub(str, 1, #str - 1)
+    if #units.numerator == 0 then
+        str = str .. "1"
+    end
+    if #units.denominator == 0 then
+        return str
+    end
+
     str = str .. "/"
     for _index, unit in ipairs(units.denominator) do
         str = str .. unit .. "*"
@@ -79,11 +113,59 @@ end
 
 local function addUnit(name, symbol, numerator, denominator)
     -- TODO: check ifl symbol is unique
-    if (UNITS[name] ~= nil) then
-        error("Cannot overwrite units: unit " .. name .. " already exists!")
+    if (UNITS[symbol] ~= nil) then
+        error("Cannot overwrite units: unit " .. symbol .. " already exists!")
         return nil
     end
-    UNITS[name] = newUnit(name, symbol, numerator, denominator)
+    UNITS[symbol] = newUnit(name, symbol, numerator, denominator)
+end
+
+local function simplifyUnits(u)
+    local n = { table.unpack(u.numerator) }
+    local d = { table.unpack(u.denominator) }
+    local retUnits = {
+        name = "", -- TODO: set
+        symbol = "", -- TODO: set
+        numerator = {},
+        denominator = {}
+    }
+    local occurrences = {}
+    for _index, unit in ipairs(n) do
+        if occurrences[unit] == nil then
+            occurrences[unit] = 0
+        end
+        occurrences[unit] = occurrences[unit] + 1
+    end
+    for _index, unit in ipairs(d) do
+        if occurrences[unit] == nil then
+            occurrences[unit] = 0
+        end
+        occurrences[unit] = occurrences[unit] - 1
+    end
+    for unit, occ in pairs(occurrences) do
+        if occ > 0 then
+            for i = 1, occ, 1 do
+                table.insert(retUnits.numerator, unit)
+            end
+        elseif occ < 0 then
+            for i = 1, -occ, 1 do
+                table.insert(retUnits.denominator, unit)
+            end
+        end
+    end
+    return retUnits
+end
+
+local function explodeUnit(unitSymbol)
+    if UNITS[unitSymbol] == nil then
+        error("Unknown unit " .. unitSymbol)
+        return nil
+    end
+    return UNITS[unitSymbol]
+end
+
+local function isPhysicalQuantity(toTest)
+    return type(toTest) == "table" and toTest.type == M.physicalQuantityType
 end
 
 -- base units
@@ -124,75 +206,157 @@ addUnit("joule", "J", { "kg", "m", "m" }, { "s", "s" })
 addUnit("watt", "W", { "kg", "m", "m" }, { "s", "s", "s" })
 
 local function newPhysicalQuantity(val, unit)
--- print(dump(unit))
-    local n = { table.unpack(unit[1]) }
-    local d = { table.unpack(unit[2]) }
+    local n = {}
+    local d = {}
+    if type(unit) == "string" then
+        local u = explodeUnit(unit)
+        if u == nil then
+            return nil
+        end
+        n = u.numerator
+        d = u.denominator
+    elseif type(unit) == "table" then
+        if (unit[1] == nil) then
+            unit[1] = {}
+        end
+        if (unit[2] == nil) then
+            unit[2] = {}
+        end
+        n = { table.unpack(unit[1]) }
+        for _index, value in ipairs(n) do
+            if UNITS[value] == nil then
+                error("Unknown unit: " .. value)
+                return nil
+            end
+        end
+        d = { table.unpack(unit[2]) }
+        for _index, value in ipairs(d) do
+            if UNITS[value] == nil then
+                error("Unknown unit: " .. value)
+                return nil
+            end
+        end
+    end
     -- print(dump(n))
     -- print(dump(d))
     PhysicalQuantity = {}
     local physicalQuantity = {
-        type = "physicalQuantity",
+        type = M.physicalQuantityType,
         value = val,
         units = {
+            name = "", -- TODO: set
+            symbol = "", -- TODO: set
             numerator = n,
             denominator = d
-        },
+        }
     }
     PhysicalQuantity.mt = {
         __add      = function(lhs, rhs)
+            if type(lhs) == "number" or type(rhs) == "number" then
+                error("Cannot add a pure number to a Physical Quantity!")
+                return nil
+            end
             if areUnitsEqual(lhs.units, rhs.units) then
-                local ret = {
-                    value = lhs.value + rhs.value,
-                    units = {
-                        numerator = lhs.units.numerator,
-                        denominator = lhs.units.denominator
-                    }
-                }
-                setmetatable(ret, PhysicalQuantity.mt)
-                return ret
+                return newPhysicalQuantity(lhs.value + rhs.value, lhs.units)
             else
-                error("Incompatible units: " .. lhs.units.numerator .. "/" .. lhs.units.denominator .. " and " .. rhs.units.numerator .. "/" .. rhs.units.denominator, 2)
+                error("Incompatible units: " .. unitsToString(lhs.units) .. " and " .. unitsToString(rhs.units), 2)
             end
         end,
         __sub      = function(lhs, rhs)
-            if lhs.units.numerator == rhs.units.numerator and lhs.units.denominator == rhs.units.denominator then
-                local ret = {
-                    value = lhs.value - rhs.value,
-                    units = {
-                        numerator = lhs.units.numerator,
-                        denominator = lhs.units.denominator
-                    }
-                }
-                setmetatable(ret, PhysicalQuantity.mt)
-                return ret
+            if type(lhs) == "number" or type(rhs) == "number" then
+                error("Cannot subtract a pure number to a Physical Quantity!")
+                return nil
+            end
+            if areUnitsEqual(lhs.units, rhs.units) then
+                return newPhysicalQuantity(lhs.value - rhs.value, lhs.units)
             else
-                error("Incompatible units: " .. lhs.units.numerator .. "/" .. lhs.units.denominator .. " and " .. rhs.units.numerator .. "/" .. rhs.units.denominator, 2)
+                error("Incompatible units: " .. unitsToString(lhs.units) .. " and " .. unitsToString(rhs.units), 2)
             end
         end,
         __mul      = function(lhs, rhs)
-            local ret = {
-                value = lhs.value + rhs.value,
-                units = {
-                    numerator = lhs.units.numerator + rhs.units.numerator,
-                    denominator = lhs.units.denominator + lhs.units.denominator
+            if type(lhs) == "number" and isPhysicalQuantity(rhs) then
+                return newPhysicalQuantity(lhs * rhs.value, { rhs.units.numerator, rhs.units.denominator })
+            end
+            if isPhysicalQuantity(lhs) and type(rhs) == "number" then
+                return newPhysicalQuantity(lhs.value * rhs, { lhs.units.numerator, lhs.units.denominator })
+            end
+            if isPhysicalQuantity(lhs) and isPhysicalQuantity(rhs) then
+                local retUnits = {
+                    name = "", -- TODO: set
+                    symbol = "", -- TODO: set
+                    numerator = {},
+                    denominator = {}
                 }
-            }
-            setmetatable(ret, PhysicalQuantity.mt)
-            return ret
+                for _index, u in ipairs(lhs.units.numerator) do
+                    table.insert(retUnits.numerator, u)
+                end
+                for _index, u in ipairs(rhs.units.numerator) do
+                    table.insert(retUnits.numerator, u)
+                end
+
+                for _index, u in ipairs(lhs.units.denominator) do
+                    table.insert(retUnits.denominator, u)
+                end
+                for _index, u in ipairs(rhs.units.denominator) do
+                    table.insert(retUnits.denominator, u)
+                end
+
+                retUnits = simplifyUnits(retUnits)
+                return newPhysicalQuantity(lhs.value * rhs.value, { retUnits.numerator, retUnits.denominator })
+            end
+            error("Incompatible types: " .. type(lhs) .. " and " .. type(rhs))
+            return nil
         end,
-        __tostring = function(val)
-            return val.value .. '[' .. unitsToString(val.units) .. ']'
+        __div      = function(lhs, rhs)
+            if type(lhs) == "number" and isPhysicalQuantity(rhs) then
+                return newPhysicalQuantity(lhs / rhs.value, { rhs.units.numerator, rhs.units.denominator })
+            end
+            if isPhysicalQuantity(lhs) and type(rhs) == "number" then
+                return newPhysicalQuantity(lhs.value / rhs, { lhs.units.numerator, lhs.units.denominator })
+            end
+            if isPhysicalQuantity(lhs) and isPhysicalQuantity(rhs) then
+                local retUnits = {
+                    name = "", -- TODO: set
+                    symbol = "", -- TODO: set
+                    numerator = {},
+                    denominator = {}
+                }
+                for _index, u in ipairs(lhs.units.numerator) do
+                    table.insert(retUnits.numerator, u)
+                end
+                for _index, u in ipairs(lhs.units.denominator) do
+                    table.insert(retUnits.denominator, u)
+                end
+
+                for _index, u in ipairs(rhs.units.numerator) do
+                    table.insert(retUnits.denominator, u)
+                end
+                for _index, u in ipairs(rhs.units.denominator) do
+                    table.insert(retUnits.numerator, u)
+                end
+
+                retUnits = simplifyUnits(retUnits)
+                return newPhysicalQuantity(lhs.value / rhs.value, { retUnits.numerator, retUnits.denominator })
+            end
+            error("Incompatible types: " .. type(lhs) .. " and " .. type(rhs))
+            return nil
+        end,
+        __eq       = function(lhs, rhs)
+            return isPhysicalQuantity(lhs) and isPhysicalQuantity(rhs) and areUnitsEqual(lhs.units, rhs.units) and lhs.value == rhs.value
+        end,
+        __tostring = function(pq)
+            return pq.value .. '[' .. unitsToString(pq.units) .. ']'
         end,
         __concat   = function(lhs, rhs)
-            if lhs.type == "physicalQuantity" and rhs.type == "physicalQuantity" then
+            if isPhysicalQuantity(lhs) and isPhysicalQuantity(rhs) then
                 return PhysicalQuantity.mt.__tostring(lhs) .. PhysicalQuantity.mt.__tostring(rhs)
             end
 
-            if lhs.type == "physicalQuantity" then
+            if isPhysicalQuantity(lhs) then
                 return PhysicalQuantity.mt.__tostring(lhs) .. rhs
             end
 
-            if rhs.type == "physicalQuantity" then
+            if isPhysicalQuantity(rhs) then
                 return lhs .. PhysicalQuantity.mt.__tostring(rhs)
             end
         end
@@ -205,5 +369,6 @@ end
 M.UNITS = UNITS
 M.new = newPhysicalQuantity
 M.areUnitsEqual = areUnitsEqual
-
+M.explodeUnit = explodeUnit
+M.unitsToString = unitsToString
 return M
