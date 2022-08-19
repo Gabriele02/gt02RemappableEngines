@@ -53,15 +53,11 @@ Content-Type: text/javascript
           TuningCheatOverwrite = cmd[2] == 'true'
         end
       end
-      local body = readFile('js/gauge.min.js')
       return [[HTTP/1.1 200 OK
 Server: BeamNG.web/0.1.0
 Connection: close
-Content-Length: ]] .. string.len(body) .. [[
 
-Content-Type: text/javascript
-
-]] .. body
+]]
     end
   },
   {'/',
