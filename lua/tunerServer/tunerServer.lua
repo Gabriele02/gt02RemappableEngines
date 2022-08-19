@@ -3,7 +3,7 @@ local M = {}
 local outData = {}
 
 local listenHost = '127.0.0.1'
-local httpListenPort = 42069
+local httpListenPort = 9696
 
 local ws = require('utils/simpleHttpServer')
 local handlers = {
