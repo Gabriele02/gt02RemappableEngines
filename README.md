@@ -10,11 +10,11 @@ This mod is NOT physically accurate in any way. It is just a kinda good approxim
 However, I have and will try to keep things as close to a simulation as I can.
 
 # Features
-Ignition timing tuning
-Injectors duty cycle tuning
-knock detection and on the fly correction
-Real time view
-More to come (See Planned Features)
+- Ignition timing tuning
+- Injectors duty cycle tuning
+- knock detection and on the fly correction
+- Real time view
+- More to come (See Planned Features)
 
 # Installation
 Copy the ```yourTunes``` folder in ```YourBeamNgUserDir/GameVersion/mods/```
