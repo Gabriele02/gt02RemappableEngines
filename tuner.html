@@ -33,7 +33,7 @@
             pointer-events: none;
         }
         .section#options{
-            display: flex;
+            /* display: flex; */
             flex-wrap: wrap;
             justify-content: center;
         }
@@ -45,103 +45,169 @@
             padding: 10px;
             border: 1px solid gray;
         }
+        .section {
+            display: none;
+        }
+        .navbar{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 100vh;
+            border: 1px solid red;
+            display: flex;
+            flex-direction: column;
+            align-content: start;
+        }
+        .spacer-75 {
+            height: 75px;
+        }
+        .section-selection {
+            height: 50px;
+            text-align: center;
+            width: 80px;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            border: 1px solid blue;
+        }
+        .section-selection > p {
+            margin: auto;
+        }
+        div.main {
+            margin-left: 100px;
+        }
+        div#realtime {
+            width: 100%;
+            border-top: 1px solid red;
+            padding: 5px;
+        }
+        div.general {
+            overflow-y: scroll;
+            overflow-x: hidden;
+        }
+        body {
+            overflow: hidden;
+        }
+        input.no-arrows::-webkit-outer-spin-button,
+        input.no-arrows::-webkit-inner-spin-button {
+            /* display: none; <- Crashes Chrome on hover */
+            -webkit-appearance: none;
+            margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+        }
+
+        input.no-arrows[type=number] {
+            -moz-appearance:textfield; /* Firefox */
+        }
     </style>
-    <div class="section" id="boost"></div>
-    <div class="section" id="ignition"></div>
-    <div class="section" id="injector"></div>
-    <div class="section" id="options">
-        <h1 style="width: 100%;">Options</h1>
+    <div class="navbar" id="navbar">
+        <div class="section-selection" id="injector-section-selection"><p>Fuel</p></div>
+        <div class="section-selection" id="ignition-section-selection"><p>Ignition</p></div>
+        <div class="section-selection" id="options-section-selection"><p>Options</p></div>
+        <div class="section-selection" id="realtime-section-selection"><p>Real-Time</p></div>
+        <p>Load Tune</p>
+        <input type="file" id="tune-file" />
+        <button id="save-tune">Save</button>
     </div>
-    <div class="section" id="engine-data"></div>
-    <div class="section" id="gauges">
-        <canvas id="rpm"></canvas>
-    </div>
+    <div class="main">
+        <div class="general" id="general">
+            <div class="section" id="boost"></div>
+            <div class="section" id="injector"></div>
+            <div class="section" id="ignition"></div>
+            <div class="section" id="options">
+                <h1 style="width: 100%;">Options</h1>
+            </div>
+        </div>
+        <div class="section" id="realtime">
+            <p>Real-Time</p>
+            <div class="" id="engine-data"></div>
+            <div class="" id="gauges">
+                <canvas id="rpm"></canvas>
+            </div>
+        </div>
+        <div class="section" id="experimental">
+            <input type="number" name="RpmOverwrite" id="RpmOverwrite" style="width: 6em;color:white;">
+            <label for="RpmOverwrite">RpmOverwrite</label><br>
 
-    <button id="save-tune">Save</button>
-    <p>Load Tune</p>
-    <input type="file" id="tune-file" />
-    <div class="section" id="experimental">
-        <input type="number" name="RpmOverwrite" id="RpmOverwrite" style="width: 6em;color:white;">
-        <label for="RpmOverwrite">RpmOverwrite</label><br>
+            <input type="number" name="MapOverwrite" id="MapOverwrite" style="width: 6em;color:white;">
+            <label for="MapOverwrite">MapOverwrite</label><br>
 
-        <input type="number" name="MapOverwrite" id="MapOverwrite" style="width: 6em;color:white;">
-        <label for="MapOverwrite">MapOverwrite</label><br>
+            <input type="checkbox" name="TuningCheatOverwrite" id="TuningCheatOverwrite">
+            <label for="TuningCheatOverwrite">TuningCheatOverwrite</label>
+            <br>
+            <h2>
+                Auto-tuner
+            </h2>
+            <input type="number" name="fromRPM" id="fromRPM" style="width: 6em;color:white;">
+            <label for="fromRPM">From RPM</label><br>
 
-        <input type="checkbox" name="TuningCheatOverwrite" id="TuningCheatOverwrite">
-        <label for="TuningCheatOverwrite">TuningCheatOverwrite</label>
-        <br>
-        <h2>
-            Auto-tuner
-        </h2>
-        <input type="number" name="fromRPM" id="fromRPM" style="width: 6em;color:white;">
-        <label for="fromRPM">From RPM</label><br>
+            <input type="number" name="toRPM" id="toRPM" style="width: 6em;color:white;">
+            <label for="toRPM">To RPM</label><br>
 
-        <input type="number" name="toRPM" id="toRPM" style="width: 6em;color:white;">
-        <label for="toRPM">To RPM</label><br>
+            <input type="number" name="fromMAP" id="fromMAP" style="width: 6em;color:white;">
+            <label for="fromMAP">From MAP</label><br>
 
-        <input type="number" name="fromMAP" id="fromMAP" style="width: 6em;color:white;">
-        <label for="fromMAP">From MAP</label><br>
+            <input type="number" name="toMAP" id="toMAP" style="width: 6em;color:white;">
+            <label for="toMAP">To MAP</label><br>
 
-        <input type="number" name="toMAP" id="toMAP" style="width: 6em;color:white;">
-        <label for="toMAP">To MAP</label><br>
+            <input type="number" name="targetAFR" id="targetAFR" style="width: 6em;color:white;">
+            <label for="targetAFR">Target AFR</label><br>
 
-        <input type="number" name="targetAFR" id="targetAFR" style="width: 6em;color:white;">
-        <label for="targetAFR">Target AFR</label><br>
-
-        <button id="autotune">Autotune</button>
-        <script type="text/javascript">
-            function sendData() {
-                if(!document.querySelector('#TuningCheatOverwrite').checked){return;}
-                const rpm = document.querySelector('#RpmOverwrite').value;
-                const map = document.querySelector('#MapOverwrite').value;
-                fetch(
-                    `http://${window.location.host}/command?RpmOverwrite=${rpm}&MapOverwrite=${map}`,
-                )
-            };
-            document.querySelector('#MapOverwrite').addEventListener("input", sendData);
-            document.querySelector('#RpmOverwrite').addEventListener("input", sendData);
-            document.querySelector('#TuningCheatOverwrite').addEventListener("change", function() {
-                fetch(
-                    `http://${window.location.host}/command?TuningCheatOverwrite=${this.checked ? 'true' : 'false'}`,
-                )
-            });
-            async function autoTune(fromRPM, toRPM, fromMAP, toMAP, targetAFR) {
-                for (let rpm = fromRPM; rpm <= toRPM; rpm += 500) {
-                    for (let map = fromMAP; map <= toMAP; map += 10) {
-                    let target_afr = targetAFR;
-                    await fetch(
-                        `http://${window.location.host}/command?TuningCheatOverwrite=true&RpmOverwrite=${rpm}&MapOverwrite=${map}`
-                    ).then(() => {
-                        await fetch(`http://${window.location.host}/engineData.json`)
-                            .then((response) => {
-                            return response.json();
-                            })
-                            .then((json) => {
-                                afr = json.afr;
-                                console.log(afr);
-                                const val = document.getElementById(`${rpm}-${map}-injector-table`).value * afr / target_afr;
-                                document.getElementById(`${rpm}-${map}-injector-table`).value = val;
-                                document.getElementById(`${rpm}-${map}-injector-table`).dispatchEvent(new Event('input', {bubbles:true}));
-                            });
-                    });
+            <button id="autotune">Autotune</button>
+            <script type="text/javascript">
+                function sendData() {
+                    if(!document.querySelector('#TuningCheatOverwrite').checked){return;}
+                    const rpm = document.querySelector('#RpmOverwrite').value;
+                    const map = document.querySelector('#MapOverwrite').value;
+                    fetch(
+                        `http://${window.location.host}/command?RpmOverwrite=${rpm}&MapOverwrite=${map}`,
+                    )
+                };
+                document.querySelector('#MapOverwrite').addEventListener("input", sendData);
+                document.querySelector('#RpmOverwrite').addEventListener("input", sendData);
+                document.querySelector('#TuningCheatOverwrite').addEventListener("change", function() {
+                    fetch(
+                        `http://${window.location.host}/command?TuningCheatOverwrite=${this.checked ? 'true' : 'false'}`,
+                    )
+                });
+                async function autoTune(fromRPM, toRPM, fromMAP, toMAP, targetAFR) {
+                    for (let rpm = fromRPM; rpm <= toRPM; rpm += 500) {
+                        for (let map = fromMAP; map <= toMAP; map += 10) {
+                        let target_afr = targetAFR;
+                        await fetch(
+                            `http://${window.location.host}/command?TuningCheatOverwrite=true&RpmOverwrite=${rpm}&MapOverwrite=${map}`
+                        ).then(() => {
+                            await fetch(`http://${window.location.host}/engineData.json`)
+                                .then((response) => {
+                                return response.json();
+                                })
+                                .then((json) => {
+                                    afr = json.afr;
+                                    console.log(afr);
+                                    const val = document.getElementById(`${rpm}-${map}-injector-table`).value * afr / target_afr;
+                                    document.getElementById(`${rpm}-${map}-injector-table`).value = val;
+                                    document.getElementById(`${rpm}-${map}-injector-table`).dispatchEvent(new Event('input', {bubbles:true}));
+                                });
+                        });
+                        }
                     }
+
+                    await fetch(
+                        `http://${window.location.host}/command?TuningCheatOverwrite=false&RpmOverwrite=0&MapOverwrite=0`
+                    )
                 }
+                document.getElementById('autotune').addEventListener('click', () => {
+                    autoTune(
+                        Number(document.getElementById('fromRPM').value),
+                        Number(document.getElementById('toRPM').value),
+                        Number(document.getElementById('fromMAP').value),
+                        Number(document.getElementById('toMAP').value),
+                        Number(document.getElementById('targetAFR').value),
+                    );
+                })
 
-                await fetch(
-                    `http://${window.location.host}/command?TuningCheatOverwrite=false&RpmOverwrite=0&MapOverwrite=0`
-                )
-            }
-            document.getElementById('autotune').addEventListener('click', () => {
-                autoTune(
-                    Number(document.getElementById('fromRPM').value),
-                    Number(document.getElementById('toRPM').value),
-                    Number(document.getElementById('fromMAP').value),
-                    Number(document.getElementById('toMAP').value),
-                    Number(document.getElementById('targetAFR').value),
-                );
-            })
-
-        </script>
+            </script>
+        </div>
     </div>
     <a id="downloadAnchorElem" style="display:none"></a>
     <div id="selection-editor-dialog" style="border: 1px solid red; border-radius: 10px; position: absolute; width: 50%; height: 500px; display: none; left: 50%; top: 50%; transform: translate(-50%, -50%); background: black;">
@@ -152,8 +218,40 @@
         <button id="selection-editor-dialog-close">Close</button>
     </div>
     <script type="text/javascript">
+        const openPanels = {};
+        const sections = document.getElementsByClassName('section');
+        for (const section of sections) {
+            section.style.display = 'none';
+        }
+
+        const sectionSelections = document.getElementsByClassName('section-selection');
+        for (const sectionSelector of sectionSelections) {
+            sectionSelector.addEventListener('click', (event) => {
+                console.log(event.target.id.split("-")[0]);
+                const sect = document.getElementById(event.target.id.split("-")[0]);
+                console.log(sect.style.display );
+                if(sect.style.display === 'none'){
+                    sect.style.display = 'block';
+                    event.target.style.backgroundColor = '#0000ffa7';
+                    openPanels[event.target.id.split("-")[0]] = true;
+                }else{
+                    sect.style.display = 'none';
+                    event.target.style.backgroundColor = '#00000000';
+                    openPanels[event.target.id.split("-")[0]] = undefined;
+                }
+                if (openPanels['realtime'] !== undefined){
+                    document.getElementById('general').style.height = '60vh';
+                }else{
+                    document.getElementById('general').style.height = '100vh';
+                }
+            })
+        }
 
         let tuneValues = {};
+        const defaults = {
+            xValues: [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
+            yValues: [100, 93, 86, 79, 72, 65, 58, 51, 44, 37, 30, 23, 16, 9, 2].sort((a, b) => b - a),
+        };
         let tableToMultiselect = undefined;
         let selectedElements = [];
 
@@ -270,7 +368,7 @@
             return tuneValues[mapName].values[colIndex];
         }
 
-        const addMap3D = (displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, yMax, yStep, cellsMin, cellsMax, cellsRedValue) => {
+        const addMap3D = (displayName, unit, sectionName, mapName, xName, xValues, yName, yValues, cellsMin, cellsMax, cellsRedValue) => {
             tuneValues[mapName] = {
                 type: "3D",
                 values: {},
@@ -278,13 +376,9 @@
                 unit,
                 sectionName,
                 xName,
-                xMin,
-                xMax,
-                xStep,
+                xValues: xValues,
                 yName,
-                yMin,
-                yMax,
-                yStep,
+                yValues: yValues,
                 cellsMin,
                 cellsMax,
                 cellsRedValue
@@ -401,8 +495,8 @@
             section.appendChild(div);
         }
 
-        const createTable3D = (displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, yMax, yStep, cellsMin, cellsMax, cellsRedValue) => {
-            addMap3D(displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, yMax, yStep, cellsMin, cellsMax, cellsRedValue);
+        const createTable3D = (displayName, unit, sectionName, mapName, xName, xValues, yName, yValues, cellsMin, cellsMax, cellsRedValue) => {
+            /********/addMap3D(displayName, unit, sectionName, mapName, xName, xValues, yName, yValues, cellsMin, cellsMax, cellsRedValue);
 
             // Create name
             const tableNameElement = document.createElement('h1');
@@ -450,35 +544,37 @@
             const headerCell = headerRow.insertCell();
             const header = document.createElement('p');
             header.textContent = yName;
-            header.setAttribute('colspan', (yMax / yStep) / (yMin / yStep) + 2);
+            header.setAttribute('colspan', 30 + 2);
             headerCell.appendChild(header); 
-            for(let y = yMax; y >= yMin; y -= yStep) {
+            for(let yIndex = 0; yIndex < 15; yIndex++) {
+                const y = yValues[yIndex];
                 const newRow = tbody.insertRow();
                 const valueCell = newRow.insertCell();
 
-                if(y == yMax){
-                    const input = document.createElement("input");
-                    input.setAttribute('type', 'number');
-                    input.setAttribute('value', y);
-                    input.setAttribute('step', '0.01');
-                    input.id = `yMax-${mapName}`;
-                    input.addEventListener('change', (event) => {
-                        document.getElementById(sectionName).innerHTML = '';
-                        const oldValues = tuneValues[mapName].values;
-                        createTable3D(displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, yName, yMin, Number(event.target.value), yStep, cellsMin, cellsMax, cellsRedValue);
-                        tuneValues[mapName].values = {...tuneValues[mapName].values, ...oldValues};
-                        updateTables();
-                    });
-                    input.style.color = '#ffffff';
-                    valueCell.appendChild(input);
-                }else{
-                    const value = document.createElement('p');
-                    value.textContent = y;
-                    valueCell.appendChild(value);
-                }
+                const input = document.createElement("input");
+                input.setAttribute('type', 'number');
+                input.setAttribute('value', y);
+                input.setAttribute('step', '0.1');
+                input.className = 'no-arrows';
+                input.id = `y-${y}-${mapName}`;
+                input.addEventListener('change', (event) => {
+                    const oldValue = event.target.id.split('-')[1];
+                    const newValue = event.target.value;
+                    tuneValues[mapName].values[newValue] = tuneValues[mapName].values[oldValue];
+                    input.id = `y-${newValue}-${mapName}`;
+                    delete tuneValues[mapName].values[oldValue];
+                    for (let index = 0; index < tuneValues[mapName].yValues.length; index++) {
+                        if(tuneValues[mapName].yValues[index] == oldValue){
+                            tuneValues[mapName].yValues[index] == newValue;
+                        }
+                    }
+                    console.log(tuneValues);
+                });
+                input.style.color = '#ffffff';
+                valueCell.appendChild(input);
                 
-                for (let x = xMin; x <= xMax; x += xStep) {
-
+                for (let xIndex = 0; xIndex < 30; xIndex++) {
+                    const x = xValues[xIndex];
                     // Insert a cell at the end of the row
                     const newCell = newRow.insertCell();
 
@@ -507,11 +603,35 @@
             footer.textContent = xName;
             footerCell.appendChild(footer);
 
-            for (let x = xMin; x <= xMax; x += xStep) {
+            for (let xIndex = 0; xIndex < 30; xIndex++) {
+                const x = xValues[xIndex];
                 footerCell = footerRow.insertCell();
-                footer = document.createElement('p');
-                footer.textContent = x;
-                footerCell.appendChild(footer); 
+                // footer = document.createElement('p');
+                // footer.textContent = x;
+                const input = document.createElement("input");
+                input.setAttribute('type', 'number');
+                input.setAttribute('value', x);
+                input.setAttribute('step', '1');
+                input.className = 'no-arrows';
+                input.id = `x-${x}-${mapName}`;
+                input.addEventListener('change', (event) => {
+                    const oldValue = event.target.id.split('-')[1];
+                    const newValue = event.target.value;
+                    for (const y in tuneValues[mapName].values) {
+                        tuneValues[mapName].values[y];
+                        tuneValues[mapName].values[y][newValue] = tuneValues[mapName].values[y][oldValue];
+                        delete tuneValues[mapName].values[y][oldValue];
+                    }
+                    input.id = `x-${newValue}-${mapName}`;
+                    for (let index = 0; index < tuneValues[mapName].xValues.length; index++) {
+                        if(tuneValues[mapName].xValues[index] == oldValue){
+                            tuneValues[mapName].xValues[index] == newValue;
+                        }
+                    }
+                    console.log(tuneValues);
+                });
+                input.style.color = '#ffffff';
+                footerCell.appendChild(input); 
             }
 
             // Show table
@@ -587,18 +707,22 @@
                 }else{
                     document.getElementById(map.sectionName).innerHTML = '';
                     const bkup = tuneValues[mapName].values;
-                    createTable3D(map.displayName, map.unit, map.sectionName, mapName, map.xName, map.xMin, map.xMax, map.xStep, map.yName, map.yMin, map.yMax, map.yStep, map.cellsMin, map.cellsMax, map.cellsRedValue);
+                    createTable3D(map.displayName, map.unit, map.sectionName, mapName, map.xName, map.xValues.sort((a, b) => a - b) || defaults.xValues, map.yName, map.yValues.sort((a, b) => b - a) || defaults.yValues, map.cellsMin, map.cellsMax, map.cellsRedValue);
                     tuneValues[mapName].values = bkup;
                     let nextMap = false;
-                    for(let y = map.yMax; y >= map.yMin && !nextMap; y -= map.yStep) {
-                        for (let x = map.xMin; x <= map.xMax; x += map.xStep) {
+                    for(let yIndex = 0; yIndex < map.yValues.length && !nextMap; yIndex++) {
+                        const y = map.yValues[yIndex];
+                        // console.log(y, map.yValues);
+                        // console.log(map.xValues)
+                        for (let xIndex = 0; xIndex < map.xValues.length; xIndex++) {
+                            const x = map.xValues[xIndex];
                             const cell = document.getElementById(`${x}-${y}-${mapName}`);
                             if(!cell){
                                 nextMap = true;
                                 continue;
                             }
                             console.log(cell);
-                            cell.value = getMapValue3D(mapName, y, x);
+                            cell.value = getMapValue3D(mapName, y, x) || 0;
                             cell.dispatchEvent(new Event('input', {bubbles:true}));
                         }
                     }
@@ -625,6 +749,10 @@
             reader.onload = function(event) {
                 const contents = event.target.result;
                 tuneValues = JSON.parse(contents);
+                if(tuneValues.version != 0.2) {
+                    console.log("Found old tune: version "  + tuneValues.version);
+                    alert("Please, open BeamNG and update the tune. The tune may not be loaded correctly if not updated.");
+                }
                 updateTables();
             };
             reader.readAsText(file);
@@ -660,8 +788,18 @@
             createOption('RPM limit', 'RPM', 'options', 'RPM-limit', 'number', 1, 0, 20000, 10000);
             createOption('Knock correction', '---', 'options', 'knock-correction', 'checkbox');
             // createTable('Boost Table', 'PSI', 'boost', 'boost-table', 'RPM', MIN_RPM, MAX_RPM, RPM_STEP, 'Load', MIN_LOAD, MAX_LOAD, LOAD_STEP, 0, 255, 50);
-            createTable3D('Ignition Advance Table', 'Degº', 'ignition', 'advance-table', 'RPM', MIN_RPM, MAX_RPM, RPM_STEP, 'MAP', MIN_LOAD, MAX_LOAD, LOAD_STEP, -90, 90, 40);
-            createTable3D('Injector Duty Table', '%', 'injector', 'injector-table', 'RPM', MIN_RPM, MAX_RPM, RPM_STEP, 'MAP', MIN_LOAD, MAX_LOAD, LOAD_STEP, 0, 90, 40);
+            createTable3D(
+                'Ignition Advance Table', 'Degº', 'ignition', 'advance-table',
+                'RPM', [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
+                'MAP', [100, 93, 86, 79, 72, 65, 58, 51, 44, 37, 30, 23, 16, 9, 2].sort((a, b) => b - a),
+                -90, 90, 40
+            );
+            createTable3D(
+                'Injector Duty Table', '%', 'injector', 'injector-table',
+                'RPM', [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
+                'MAP', [100, 93, 86, 79, 72, 65, 58, 51, 44, 37, 30, 23, 16, 9, 2].sort((a, b) => b - a),
+                0, 90, 40
+            );
             
             document.getElementById('save-tune').addEventListener('click', () => {downloadTune();})
             document.getElementById('tune-file').addEventListener('change', (event) => {loadTune(event);})

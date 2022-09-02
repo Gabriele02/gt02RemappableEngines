@@ -1,6 +1,6 @@
 local M = {}
 local updatesLookup = {
-    nilTo01 = function (oldTune)
+    _nilTo01 = function (oldTune)
         local newTune = deepcopy(oldTune)
         newTune.version = 0.1
         newTune.options = {}
@@ -24,6 +24,57 @@ local updatesLookup = {
             optionName = "knock-correction",
             optionType = "checkbox",
         }
+        return newTune
+    end,
+    _01To02 = function (oldTune)
+        local newTune = deepcopy(oldTune)
+        newTune.version = 0.2
+        for mapName, map in pairs(oldTune) do
+            if type(map) == "table" and map.type == '3D' then
+                newTune[mapName].xValues = {}
+                for i = map.xMin, map.xMax, map.xStep do
+                    -- newTune[mapName].xValues[#newTune[mapName].xValues] = i
+                    table.insert(newTune[mapName].xValues, i)
+                end
+                newTune[mapName].yValues = {}
+                for i = map.yMin, map.yMax, map.yStep do
+                    -- newTune[mapName].yValues[#newTune[mapName].yValues] = i
+                    table.insert(newTune[mapName].yValues, i)
+                end
+                newTune[mapName].xMin = nil
+                newTune[mapName].xMax = nil
+                newTune[mapName].xStep  = nil
+                newTune[mapName].yMin = nil
+                newTune[mapName].yMax = nil
+                newTune[mapName].yStep = nil
+                if #newTune[mapName].xValues > 30 then
+                    for i = 30, #newTune[mapName].xValues, 1 do
+                        -- newTune[mapName].xValues[i] = 0
+                        table.insert(newTune[mapName].xValues, 0)
+                    end
+                end
+                if #newTune[mapName].yValues > 15 then
+                    for i = 15, #newTune[mapName].yValues, 1 do
+                        -- newTune[mapName].yValues[i] = 0
+                        table.insert(newTune[mapName].yValues, 0)
+                    end
+                end
+                if #newTune[mapName].xValues < 30 then
+                    local val = newTune[mapName].xValues[#newTune[mapName].xValues]
+                    for i = #newTune[mapName].xValues, 29, 1 do
+                        -- newTune[mapName].xValues[i] = val
+                        table.insert(newTune[mapName].xValues, i, val + i)
+                    end
+                end
+                if #newTune[mapName].yValues < 15 then
+                    local val = newTune[mapName].yValues[#newTune[mapName].yValues]
+                    for i = #newTune[mapName].yValues, 14, 1 do
+                        -- newTune[mapName].yValues[i] = val
+                        table.insert(newTune[mapName].yValues, i, val + i)
+                    end
+                end
+            end
+        end
         return newTune
     end
 }
@@ -50,7 +101,7 @@ local function updateTuneFile(tuneFilePath, updateToVersion)
     io.write(tuneStr)
     io.close(backupFile)
 
-    local lookupValue = (tune.version or 'nil') .. "To" .. (tostring(updateToVersion):gsub('%.', ''))
+    local lookupValue = '_' .. (tostring(tune.version):gsub('%.', '') or 'nil')  .. "To" .. tostring(updateToVersion):gsub('%.', '')
     local newTune = updatesLookup[lookupValue](tune)
 
     local newTuneFile = io.open(tuneFilePath, "w")

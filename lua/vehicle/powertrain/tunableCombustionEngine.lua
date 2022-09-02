@@ -1,12 +1,16 @@
 local M = {}
-M.SUPPORTED_MAPS_VERSION = 0.1
+M.SUPPORTED_MAPS_VERSION = 0.2
 
 local ecu = {
   throttleSmoother = newTemporalSmoothing(15, 10),
+  mapSmoother = newTemporalSmoothing(300, 200),
+
   maps = nil,
+
   corrections = {
     ignition_knock_retard = 0,
   },
+
   tuneOutData = {
     lambda = 0,
     afr = 0,
@@ -14,7 +18,23 @@ local ecu = {
     load = 0,
     throttle = 0,
     ignTiming = 0,
-  }
+  },
+
+  timers = {
+    limiter_fuel_cut = 0
+  },
+
+  safeties = {
+    -- soft_rev_limiter = {
+    --   RPM = 0,
+    --   enabled = true,
+    --   soft_limiter_ignition_retard = 0,
+    -- },
+    hard_rev_limiter = {
+      RPM = 0,
+      type = 'fuel_cut'
+    }
+  },
 }
 
 local function logistic(x, x0, k, l)
@@ -39,37 +59,44 @@ local function get3DTableValue(map, x, y, p)
   local y_max
   local x_min
   local x_max
-  for i = 1, #map.yAxis - 1, 1 do
-    if math.abs(map.yAxis[i] - y) <= 0.00001 then
-      y_min = map.yAxis[i]
-      y_max = map.yAxis[i]
+  -- dump(map.yValues)
+  for i = 1, #map.yValues - 1, 1 do
+    -- print(map.yValues[i])
+    if math.abs(tonumber(map.yValues[i]) - y) <= 0.00001 then
+      y_min = tonumber(map.yValues[i])
+      y_max = tonumber(map.yValues[i])
       break
     end
-    if y >= map.yAxis[i] and y < map.yAxis[i + 1] then
-      y_min = map.yAxis[i]
-      y_max = map.yAxis[i + 1]
-      break
-    end
-  end
-  for i = 1, #map.xAxis - 1, 1 do
-    if math.abs(map.xAxis[i] - x) <= 0.00001 then
-      x_min = map.xAxis[i]
-      x_max = map.xAxis[i]
-      break
-    end
-    if x >= map.xAxis[i] and x < map.xAxis[i + 1] then
-      x_min = map.xAxis[i]
-      x_max = map.xAxis[i + 1]
+    -- dump(map.yValues[i] .. " - " .. map.yValues[i + 1])
+    if y >= tonumber(map.yValues[i]) and y < tonumber(map.yValues[i + 1]) then
+      -- print('here')
+      y_min = tonumber(map.yValues[i])
+      y_max = tonumber(map.yValues[i + 1])
       break
     end
   end
-  if y >= map.yMax --[[or y_max >= map.yMax]] then
-    y_max = map.yMax
-    y_min = map.yMax
+  for i = 1, #map.xValues - 1, 1 do
+    if math.abs(map.xValues[i] - x) <= 0.00001 then
+      x_min = map.xValues[i]
+      x_max = map.xValues[i]
+      break
+    end
+    if x >= map.xValues[i] and x < map.xValues[i + 1] then
+      x_min = map.xValues[i]
+      x_max = map.xValues[i + 1]
+      break
+    end
   end
-  if x_max >= map.xMax then
-    x_max = map.xMax
-    x_min = map.xMax
+  local yMax = map.yValues[#map.yValues]
+  local xMax = map.xValues[#map.xValues]
+  
+  if y >= yMax --[[or y_max >= map.yMax]] then
+    y_max = yMax
+    y_min = yMax
+  end
+  if x_max >= xMax then
+    x_max = xMax
+    x_min = xMax
   end
   ecu.tuneOutData[map.displayName] = {
     y_min = y_min,
@@ -125,8 +152,12 @@ local engineMeasurements = {
 }
 -- local air_density = 1 -- should be based on temperature
 -- local fuel_density = 1.3 -- ^^
+
+local throttle_cv = nil
+local prev_air_vol_flow = 10
+
 local tick = 0
-local debug = false
+local debug = true
 -- Air
 local volumetric_efficiency_curve = nil
 
@@ -179,20 +210,27 @@ local function reloadTuneFromFile()
   for mapName, map in pairs(ecu.maps) do
     if type(map) == "table" then
       if map.type == '3D' or map.type == '2D' then
-        local y_keys = {}
-        for key, _ in pairs(map.values) do
-          table.insert(y_keys, tonumber(key))
-        end
-        local x_keys = {}
-        for key, _ in pairs(map.values['' .. y_keys[1]]) do
-          table.insert(x_keys, tonumber(key))
-        end
-        table.sort(x_keys)
-        table.sort(y_keys)
-        ecu.maps[mapName].xAxis = x_keys
-        ecu.maps[mapName].yAxis = y_keys
-        dump(ecu.maps[mapName].yAxis)
-        dump(ecu.maps[mapName].xAxis)
+        table.sort(map.yValues, function (a, b)
+          return a < b
+        end)
+        table.sort(map.xValues, function (a, b)
+          return a < b
+        end)
+  --       table.sort(y_keys)
+  --       local y_keys = {}
+  --       for key, _ in pairs(map.values) do
+  --         table.insert(y_keys, tonumber(key))
+  --       end
+  --       local x_keys = {}
+  --       for key, _ in pairs(map.values['' .. y_keys[1]]) do
+  --         table.insert(x_keys, tonumber(key))
+  --       end
+  --       table.sort(x_keys)
+  --       table.sort(y_keys)
+  --       ecu.maps[mapName].xAxis = x_keys
+  --       ecu.maps[mapName].yAxis = y_keys
+  --       dump(ecu.maps[mapName].yAxis)
+  --       dump(ecu.maps[mapName].xAxis)
       end
     end
   end
@@ -230,7 +268,7 @@ local function calculateTorque(dt, valuesOverwrite)
 
   local RPM = valuesOverwrite.RPM ~= nil and valuesOverwrite.RPM or math.abs(engine.outputRPM)
 
-  local throttle = valuesOverwrite.throttle ~= nil and valuesOverwrite.throttle or electrics.values[engine.electricsThrottleName]
+  local throttle = electrics.values[engine.electricsThrottleName]
   -- if engine.outputRPM > 0 and engine.outputRPM < 700 then
   local idleThrottle = math.min(1 / ((engine.outputRPM / 600 + 1) ^ 3), 1)
   if RPM > 600 * 2 or RPM <= 300 then
@@ -248,7 +286,7 @@ local function calculateTorque(dt, valuesOverwrite)
     throttle = 0
   end
   -- throttle = math.min(throttle, 0.3)
-
+  throttle = valuesOverwrite.throttle ~= nil and valuesOverwrite.throttle or throttle
 
   engineMeasurements.thermal_efficiency = 1 / (engine.invBurnEfficiencyTable[math.floor(engine.instantEngineLoad * 100)] or 1)
   -- print(test_curve[RPM])
@@ -259,8 +297,8 @@ local function calculateTorque(dt, valuesOverwrite)
 
   -- local teorical_airflow_CFM = RPM * displacement_ci / 3456
   -- local airflow_CFM = engineMeasurements.volumetric_efficiency * teorical_airflow_CFM
-  -- local throttle_body_area = math.pi * (engineMeasurements.throttle_body_diameter_cm / 2) ^ 2
-  -- local opening = throttle_body_area - (throttle_body_area * math.cos((math.pi / 2)* throttle)) -- FAKY WAKY
+  local throttle_body_area = math.pi * ((--[[engineMeasurements.throttle_body_diameter_cm]](6/100) --[[cm to m]] / 2) ^ 2)
+  local throttle_open_area = throttle_body_area - (throttle_body_area * math.cos((math.pi / 2)* throttle)) -- FAKY WAKY
   -- local simulated_diameter = 2 * math.sqrt(opening / math.pi)
   -- print("opening: " .. opening .. ", diameter: " .. simulated_diameter)
   -- local simulated_diameter_in = simulated_diameter * conversions.cm_to_in
@@ -288,22 +326,55 @@ local function calculateTorque(dt, valuesOverwrite)
   end
   --/ 1.225
 
+  
   -- local air_speed_m_s = (m3_of_air / (1.225 * opening))
   -- print("velocity: " .. air_speed_m_s)
   -- local air_speed_ft_s = air_speed_m_s * 0.911344
-
+  
   -- local pressure_drop = logistic(m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2)* throttle))), 2, 2, 14.7)
   -- local pressure_drop = logistic(m3_of_air / (engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2) * (throttle ^ 0.75)))), 2, 1, 14.7)
   local intake_air_pressure = 287.058 *
-      (
-      1.225 *
-          (engine.intakeAirDensityCoef + ((electrics.values.turboBoost or 0) * (throttle <= 0 and 0 or 1) / 14.7)
-          --[[* engine.forcedInductionCoef]])) * 293 / 1000
-  if debug and tick % 50 == 0 then
-  	print("intake_air_pressure: " .. (intake_air_pressure * 1000 / 6894.76 ))
-  end
-  
-  local pressure_drop = logistic(m3_of_air / (engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2) * (throttle)))), 4.5, 1, intake_air_pressure * 1000 / 6894.76)
+  (
+    1.225 *
+    (engine.intakeAirDensityCoef + ((electrics.values.turboBoost or 0) * (throttle <= 0 and 0 or 1) / 14.7)
+    --[[* engine.forcedInductionCoef]])) * 293 / 1000
+    if debug and tick % 50 == 0 then
+      print("intake_air_pressure: " .. (intake_air_pressure * 1000 / 6894.76 ))
+      print("intake_air_pressure: " .. (intake_air_pressure ))
+    end
+    
+    -- TEST
+    local flow_rate = 0.75 --[[Cd]] * throttle_open_area * math.sqrt(
+      1.4 --[[air heat capacity ratio]] *
+      1.2041 --[[air density]] *
+      intake_air_pressure *
+      (2/(1.4+1))^((1.4+1)/(1.4-1))
+    )
+
+    -- if debug and tick % 50 == 0 then
+    --   print("flow_rate: " .. flow_rate)
+    -- end
+    -- local flow_mean_speed_0 = flow_rate / throttle_body_area
+    -- local flow_mean_speed_1 = flow_rate / throttle_open_area
+    -- local p2 = intake_air_pressure*1000 - 0.5 * 1.2041 * (flow_mean_speed_1 ^ 2 - flow_mean_speed_0 ^ 2)
+    -- if debug and tick % 50 == 0 then
+    --   -- print("p2: " .. p2 / 1000)
+    -- end
+    -- local v_cyl = engineMeasurements.displacement_cc / engineMeasurements.num_cylinders
+    -- local mol_cyl_atm = intake_air_pressure--[[pa]] * (v_cyl--[[cc]] / 1000000 --[[cc to m^3]]) / (8.314--[[R]] * 293--[[K]])
+
+    -- local tMAP = flow_rate--[[m^3/s]] / (((engineMeasurements.displacement_cc --[[cc]] / 1000000 --[[cc to m^3]] * RPM) / (2 * 8.314--[[R]] * 293--[[K]])) * engineMeasurements.volumetric_efficiency)
+    -- local dp = math.min((1.5 * (m3_of_air / (engineMeasurements.throttle_body_max_flow * (throttle_flow_vs_position[math.ceil(throttle * 100)]) / 100)) ^ 2) * 3386, 90 * 1000)
+    -- if debug and tick % 50 == 0 then
+    --   print('Dp: ' .. (
+    --     dp
+    --   ))
+    --   -- print('tMAP: ' .. tMAP)
+    --   -- print('flow_rate: ' .. flow_rate)
+    -- end
+  local pressure_drop = ((m3_of_air / (0.75 * throttle_open_area)) ^ 2) * (1.2041 / 2) / (6895 --[[pa to psi]])
+  -- local pressure_drop = ((m3_of_air / (0.75 * throttle_open_area)) ^ 2) * (1.2041 / 2) / (6895 --[[pa to psi]])
+  -- local pressure_drop = logistic(m3_of_air / (engineMeasurements.throttle_body_max_flow * (1 - math.cos((math.pi / 2) * (throttle)))), 4.5, 1, intake_air_pressure * 1000 / 6894.76)
   local flowAttenuation = (math.cos(throttle * math.pi / 2) ^ --[[m_throttleGamma]] 2 )
   -- local pressure_drop = logistic(m3_of_air / (engineMeasurements.throttle_body_max_flow * (1 - flowAttenuation)), 4.5, 1, 14.7)
   -- print(pressure_drop)
@@ -311,11 +382,44 @@ local function calculateTorque(dt, valuesOverwrite)
   -- local pressure_drop = m3_of_air/(engineMeasurements.throttle_body_max_flow * (1 - math.cos(math.pi / 2* throttle)))  *14.7
   -- local pressure_drop = m3_of_air/(engineMeasurements.throttle_body_max_flow * throttle) *14.7
 
+    --https://www.erpublication.org/published_paper/IJETR042360.pdf
+    local inlet_air_speed--[[m/s]] = (1/(throttle+1e-12)* engineMeasurements.volumetric_efficiency * 4 * engineMeasurements.displacement_cc / 1000 / 1000 --[[cc to L]]) * (RPM / 2 / 60) / (0.9--[[Cd]] * math.pi * (5/100 --[[cm to m]])^2)
+    local volumetric_flow_rate--[[scfh]] = math.pi / 4 * (5/100 --[[cm to m]])^2 * inlet_air_speed--[[m/s]] * 35.314666721 --[[m3/h to scfh]]
+    local dp--[[psi]] = (
+                        (529.47--[[ºR]] * 1--[[(Molecular weight of gas)/(Molecular weight of air)]]) / (intake_air_pressure * 1000 / 6894.76 --[[pa to PSI]])
+                        ) * (
+                          volumetric_flow_rate --[[scfh]]/(1.4--[[Gas constant]] * 1360 * throttle_cv[math.min(math.ceil(
+                            math.acos(1-throttle) * 57.296--[[rad to deg]]
+                          ), 90.0)]*0.75--[[Cv Valve flow coefficient]])
+                        )
+    -- prev_air_vol_flow  = volumetric_flow_rate
+    -- local volumetric_flow_rate--[[scfh]] = math.pi / 4 * (6/100 --[[cm to m]])^2 * inlet_air_speed--[[m/s]] * 35.314666721 --[[m3/h to scfh]]
+    -- local dp--[[psi]] = (
+    --                     (529.47--[[ºR]] * 1--[[(Molecular weight of gas)/(Molecular weight of air)]]) / (intake_air_pressure * 1000 / 6894.76 --[[pa to PSI]])
+    --                     ) * (
+    --                       volumetric_flow_rate--[[scfh]]/(1.4--[[Gas constant]] * 1360 * throttle_cv[math.min(math.ceil(
+    --                         math.acos(1-throttle) * 57.296--[[rad to deg]]
+    --                       ), 90.0)]*15--[[Cv Valve flow coefficient]])
+    --                     )
+
+    if debug and tick % 50 == 0 then
+      print("throttle_cv: " .. 
+      throttle_cv[math.min(math.ceil(
+        math.acos(1-throttle) * 57.296--[[rad to deg]]
+      ), 90.0)]
+    )
+      print("inlet_air_speed: " .. inlet_air_speed)
+      print("volumetric_flow_rate: " .. volumetric_flow_rate)
+      print("dp: " .. dp)
+    end
+
   if debug and tick % 50 == 0 then
     print("m3_of_air: " ..
       m3_of_air ..
       ", pressure_drop: " ..
-      pressure_drop
+      pressure_drop .. 
+      ", throttle_open_area: " .. 
+      throttle_open_area
       )
   end
 
@@ -344,7 +448,9 @@ local function calculateTorque(dt, valuesOverwrite)
   -- print(engine.forcedInductionCoef)
   -- local MAP = 100 * math.sqrt(throttle)-- Kpa
   
-  local MAP = valuesOverwrite.map and valuesOverwrite.map or math.max(intake_air_pressure - ((pressure_drop * 6894.76) / 1000), 0) -- Kpa
+  -- local MAP = valuesOverwrite.map and valuesOverwrite.map or math.max(intake_air_pressure - ((pressure_drop * 6894.76) / 1000), 0) -- Kpa
+  local MAP = valuesOverwrite.map and valuesOverwrite.map or math.max(intake_air_pressure - (dp * 6.895 --[[psi to kPa]]), 0) -- Kpa
+  MAP = ecu.mapSmoother:getUncapped(MAP, dt)
   local IAT = 293.15 -- Kelvin
   local IMAP = RPM * MAP / IAT / 2
   if debug and tick % 50 == 0 then
@@ -373,6 +479,22 @@ local function calculateTorque(dt, valuesOverwrite)
   -- Varies with engine map
   -- print('got: ' .. get3DTableValue(ecu.maps['injector-table'], RPM, MAP, true))
   local injector_duty = throttle <= 0.0 and 0 or get3DTableValue(ecu.maps['injector-table'], RPM, MAP, false) / 100
+
+  -- if ecu.safeties.soft_rev_limiter.enabled and RPM >= ecu.safeties.soft_rev_limiter.RPM then
+  --   ecu.safeties.soft_limiter_ignition_retard = 
+  -- else
+  --   ecu.safeties.soft_limiter_ignition_retard = 0
+  -- end
+  if ecu.safeties.hard_rev_limiter.type == 'fuel_cut' and ecu.timers.limiter_fuel_cut <= 0 and RPM >= ecu.safeties.hard_rev_limiter.RPM then
+    ecu.timers.limiter_fuel_cut = 0.05
+    -- engine.instantAfterFireFuelDelay:push(10000000000000) -- To simulate spark cut limiter
+  end
+  if ecu.timers.limiter_fuel_cut > 0 then
+    injector_duty = 0
+    ecu.timers.limiter_fuel_cut = ecu.timers.limiter_fuel_cut - dt
+    engine.instantEngineLoad = 0
+    engine.engineLoad = engine.loadSmoother:get(engine.instantEngineLoad, dt)
+  end
   -- math.max(0.02,  0.4 *RPM / 6000)
 
   -- local fuelflow_cfm = injector_lb_h * engineMeasurements.num_cylinders * injector_duty * 0.000266974
@@ -420,7 +542,7 @@ local function calculateTorque(dt, valuesOverwrite)
   -- SPARK
 
   local ignition_advance_deg = get3DTableValue(ecu.maps['advance-table'], RPM, MAP, true) -- BTDC
-  ignition_advance_deg = ignition_advance_deg - ecu.corrections.ignition_knock_retard
+  ignition_advance_deg = ignition_advance_deg - ecu.corrections.ignition_knock_retard -- ecu.safeties.soft_limiter_ignition_retard
   local piston_speed_ms = 2 * (engineMeasurements.stroke_cm / 100) * (RPM / 60)
   local flame_speed = 25
   local boh = 1 / 7000 * RPM
@@ -468,7 +590,7 @@ local function calculateTorque(dt, valuesOverwrite)
       print("Ignition knock retard: " .. ecu.corrections.ignition_knock_retard)
     end
 
-    local combustion_pressure = engineMeasurements.compression_ratio * 17 * MAP / 100 * (engineMeasurements.volumetric_efficiency or 0)-- Manca VE (10 ~ perché si lol)
+    local combustion_pressure = engineMeasurements.compression_ratio * 17 * ((MAP / 100) ^ 2) * (engineMeasurements.volumetric_efficiency or 0)-- ^ 2 may give incorrect results for turbo
     if ignition_advance_deg > 0 then
       combustion_pressure = combustion_pressure + (ignition_advance_deg * 2)
 
@@ -583,7 +705,7 @@ end
 -- end
 
 local function init(localEngine, jbeamData)
-  config = jbeamData
+  -- config = jbeamData
   print(v.config.partConfigFilename)
   -- local engineName = config.engineName or "mainEngine"
   -- engine = powertrain.getDevice(engineName)
@@ -703,9 +825,29 @@ local function init(localEngine, jbeamData)
 
   -- local tuneFle = readFile('data/tune.json')
 
+  --https://www.valteccn.com/blog/butterfly-valve-article/flow-coefficient-of-butterfly-valve-cv-value/
+  local throttle_cv_points = {
+    {0, 0},
+    {10, 0.2},
+    {20, 8},
+    {30, 20},
+    {40, 37},
+    {50, 65},
+    {60, 98},
+    {70, 144},
+    {80, 204},
+    {90, 220},
+  }
+  throttle_cv = createCurve(throttle_cv_points, true)
+
   reloadTuneFromFile()
   tunerServer.reset()
   print('created http server')
+
+  -- Load settings from tune
+  ecu.safeties.hard_rev_limiter.RPM = tonumber(ecu.maps.options['RPM-limit'].value)
+  ecu.safeties.hard_rev_limiter.type = 'fuel_cut'
+
   guihooks.trigger('Message', {msg = "Loaded tune: \"" .. ecu.tuneOutData.tuneFilePath .. "\"", ttl = 5, category = '', icon = nil})
 end
 
