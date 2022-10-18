@@ -28,19 +28,21 @@ local engineMeasurements = {
 }
 
 local sensors = {
-  TPS = 0,
-  MAF = 0,
-  MAP = 0,
-  RPM = 0,
+  TPS = 0,--[[0-1]]
+  MAF = 0,--[[kg/s]]
+  MAP = 70,--01.325,--[[kPa]]
+  RPM = 0,--[[1/s]]
+  AV = 0,--[[rad/s]]
   lambda = 0,
 }
 -- local air_density = 1 -- should be based on temperature
 -- local fuel_density = 1.3 -- ^^
 
 --local throttle_cv = nil -- take it from intake
+local rpmToAV = 0.104719755
 
 local tick = 0
-local debug = true
+local debug = false
 -- Air
 local volumetric_efficiency_curve = nil
 
@@ -132,6 +134,7 @@ end
 
 local function reset()
   ecu.reset()
+  intake.reset()
 end
 
 local function updateGFX(device, dt)
@@ -152,6 +155,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
 
 
   sensors.RPM = valuesOverwrite.RPM ~= nil and valuesOverwrite.RPM or math.abs(thisEngine.outputRPM) -- For consistency
+  sensors.AV = sensors.RPM * rpmToAV
 
   engineMeasurements.thermal_efficiency = 1 /
       (thisEngine.invBurnEfficiencyTable[math.floor(thisEngine.instantEngineLoad * 100)] or 1)
@@ -169,8 +173,8 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
 
   -- local fuelflow_cfm = injector_lb_h * engineMeasurements.num_cylinders * injector_duty * 0.000266974
 
-  local fuel_mass_flow = (engineMeasurements.injector_cc_min / 60 * engineMeasurements.num_cylinders * injector_duty
-      --[[grams per second]]) / 1.335291761
+  local fuel_mass_flow = ((engineMeasurements.injector_cc_min / 60--[[cc/min to cc/s]]) / 1000000--[[cc/s to m^3/s]]) * 748.9--[[m^3/s to kg/s]] * engineMeasurements.num_cylinders * injector_duty
+
   local air_fuel_ratio
   if fuel_mass_flow < 1e-30 or (fuel_mass_flow ~= fuel_mass_flow) then
     air_fuel_ratio = 0
@@ -205,6 +209,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
   end
 
   local lambda = air_fuel_ratio / 14.7 -- AFR / Stoichyometric
+  sensors.lambda = lambda
   -- print('fuel_mass_flow: ' .. fuel_mass_flow)
   -- print("throttle: " .. string.format("%.2f",throttle) .. ", afr: " .. string.format("%.2f",air_fuel_ratio))
   -- print("lambda: " .. lambda)
@@ -367,6 +372,7 @@ M.updateGFX = updateGFX
 M.simulateEngine = simulateEngine
 
 M.sensors = sensors
+M.engineMeasurements = engineMeasurements
 M.ecu = ecu
 M.intake = intake
 M.volumetric_efficiency_curve = volumetric_efficiency_curve

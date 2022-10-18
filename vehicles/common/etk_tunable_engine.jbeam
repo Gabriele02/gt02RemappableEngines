@@ -53,8 +53,8 @@
         "stroke_cm":9.46,
         "bore_cm":8.2,
         "num_cylinders":6,
-        "injector_cc_min": 325,
-        "throttle_body_diameter_cm":4,
+        "injector_cc_min": 236,
+        "throttle_body_diameter_cm":6.5,
         "throttle_body_max_flow":0.09, // m^3/s
         "volumetric_efficiency":[
             ["rpm", "ve"],

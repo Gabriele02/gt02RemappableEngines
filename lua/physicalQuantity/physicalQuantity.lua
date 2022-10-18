@@ -6,7 +6,7 @@ M.__version__ = "0.0.1"
 
 local UNITS = {}
 
-local function dump(o)
+local function _dump(o)
     if type(o) == 'table' then
         local s = '{ '
         for k, v in pairs(o) do
@@ -32,12 +32,20 @@ local function findInTable(t, val)
     return nil
 end
 
-local function areUnitsEqual(a, b)
-    local an = { table.unpack(a.numerator) }
-    local ad = { table.unpack(a.denominator) }
+--[[
+    Set the value of the physicalQuantity IN PLACE
+]]
+local function setVal(pq, value)
+    pq.value = value
+    return pq
+end
 
-    local bn = { table.unpack(b.numerator) }
-    local bd = { table.unpack(b.denominator) }
+local function areUnitsEqual(a, b)
+    local an = a.numerator--{ table.unpack(a.numerator) }
+    local ad = a.denominator--{ table.unpack(a.denominator) }
+
+    local bn = b.numerator--{ table.unpack(b.numerator) }
+    local bd = b.denominator--{ table.unpack(b.denominator) }
 
     local occurrences = {n = {}, d = {}}
     for _index, unit in ipairs(an) do
@@ -103,6 +111,12 @@ local function newUnit(name, symbol, numerator, denominator)
         error("Both numerator and denominator are nil")
         return nil
     end
+    if numerator == nil then
+        numerator = {}
+    end
+    if denominator == nil then
+        denominator = {}
+    end
     return {
         name = name,
         symbol = symbol,
@@ -121,8 +135,8 @@ local function addUnit(name, symbol, numerator, denominator)
 end
 
 local function simplifyUnits(u)
-    local n = { table.unpack(u.numerator) }
-    local d = { table.unpack(u.denominator) }
+    local n = u.numerator --{ table.unpack(u.numerator) }
+    local d = u.denominator--{ table.unpack(u.denominator) }
     local retUnits = {
         name = "", -- TODO: set
         symbol = "", -- TODO: set
@@ -179,6 +193,9 @@ addUnit("second", "s", { "s" })
 addUnit("metre", "m", { "m" })
 -- addUnit("kilometers", {"km"})
 
+-- Volume
+addUnit("liter", "l", { "l" })
+
 -- mass
 addUnit("kilogram", "kg", { "kg" })
 
@@ -205,6 +222,7 @@ addUnit("joule", "J", { "kg", "m", "m" }, { "s", "s" })
 -- power
 addUnit("watt", "W", { "kg", "m", "m" }, { "s", "s", "s" })
 
+
 local function newPhysicalQuantity(val, unit)
     local n = {}
     local d = {}
@@ -222,14 +240,14 @@ local function newPhysicalQuantity(val, unit)
         if (unit[2] == nil) then
             unit[2] = {}
         end
-        n = { table.unpack(unit[1]) }
+        n = unit[1]--{ table.unpack(unit[1]) }
         for _index, value in ipairs(n) do
             if UNITS[value] == nil then
                 error("Unknown unit: " .. value)
                 return nil
             end
         end
-        d = { table.unpack(unit[2]) }
+        d = unit[2]--{ table.unpack(unit[2]) }
         for _index, value in ipairs(d) do
             if UNITS[value] == nil then
                 error("Unknown unit: " .. value)
@@ -250,6 +268,7 @@ local function newPhysicalQuantity(val, unit)
             denominator = d
         }
     }
+    physicalQuantity.units = simplifyUnits(physicalQuantity.units)
     PhysicalQuantity.mt = {
         __add      = function(lhs, rhs)
             if type(lhs) == "number" or type(rhs) == "number" then
@@ -371,4 +390,6 @@ M.new = newPhysicalQuantity
 M.areUnitsEqual = areUnitsEqual
 M.explodeUnit = explodeUnit
 M.unitsToString = unitsToString
+M.addUnit = addUnit
+M.setVal = setVal
 return M

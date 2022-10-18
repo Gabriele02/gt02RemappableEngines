@@ -1,8 +1,12 @@
 local M = {}
 local updatesLookup = {
-    _nilTo01 = function (oldTune)
+    _nilTo01 = function(oldTune)
         local newTune = deepcopy(oldTune)
         newTune.version = 0.1
+        for mapName, map in pairs(oldTune) do
+            newTune[mapName].type = '3D'
+        end
+
         newTune.options = {}
         newTune.options['RPM-limit'] = {
             value = 0,
@@ -26,7 +30,7 @@ local updatesLookup = {
         }
         return newTune
     end,
-    _01To02 = function (oldTune)
+    _01To02 = function(oldTune)
         local newTune = deepcopy(oldTune)
         newTune.version = 0.2
         for mapName, map in pairs(oldTune) do
@@ -41,11 +45,11 @@ local updatesLookup = {
                     -- newTune[mapName].yValues[#newTune[mapName].yValues] = i
                     table.insert(newTune[mapName].yValues, i)
                 end
-                newTune[mapName].xMin = nil
-                newTune[mapName].xMax = nil
-                newTune[mapName].xStep  = nil
-                newTune[mapName].yMin = nil
-                newTune[mapName].yMax = nil
+                newTune[mapName].xMin  = nil
+                newTune[mapName].xMax  = nil
+                newTune[mapName].xStep = nil
+                newTune[mapName].yMin  = nil
+                newTune[mapName].yMax  = nil
                 newTune[mapName].yStep = nil
                 if #newTune[mapName].xValues > 30 then
                     for i = 30, #newTune[mapName].xValues, 1 do
@@ -63,20 +67,29 @@ local updatesLookup = {
                     local val = newTune[mapName].xValues[#newTune[mapName].xValues]
                     for i = #newTune[mapName].xValues, 29, 1 do
                         -- newTune[mapName].xValues[i] = val
-                        table.insert(newTune[mapName].xValues, i, val + i)
+                        table.insert(newTune[mapName].xValues, i, val)
                     end
                 end
                 if #newTune[mapName].yValues < 15 then
                     local val = newTune[mapName].yValues[#newTune[mapName].yValues]
                     for i = #newTune[mapName].yValues, 14, 1 do
                         -- newTune[mapName].yValues[i] = val
-                        table.insert(newTune[mapName].yValues, i, val + i)
+                        table.insert(newTune[mapName].yValues, i, val)
                     end
                 end
             end
         end
         return newTune
-    end
+    end,
+}
+local multipleUpdatesLookup = {
+    _nilTo02 = function(oldTune)
+        local tune01 = updatesLookup['_nilTo01'](oldTune)
+        dumpToFile("tune01", tune01)
+        local tune02 = updatesLookup['_01To02'](tune01)
+        dumpToFile("tune02", tune02)
+        return tune02
+    end,
 }
 
 local function updateTuneFile(tuneFilePath, updateToVersion)
@@ -101,8 +114,16 @@ local function updateTuneFile(tuneFilePath, updateToVersion)
     io.write(tuneStr)
     io.close(backupFile)
 
-    local lookupValue = '_' .. (tostring(tune.version):gsub('%.', '') or 'nil')  .. "To" .. tostring(updateToVersion):gsub('%.', '')
-    local newTune = updatesLookup[lookupValue](tune)
+    local lookupValue = '_' ..
+        (tostring(tune.version):gsub('%.', '') or 'nil') .. "To" .. tostring(updateToVersion):gsub('%.', '')
+    local updateFunc = updatesLookup[lookupValue]
+    local newTune = nil
+    if updateFunc == nil then
+        print("Updating :" .. lookupValue)
+        newTune = multipleUpdatesLookup[lookupValue](tune)
+    else
+        newTune = updateFunc(tune)
+    end
 
     local newTuneFile = io.open(tuneFilePath, "w")
     io.output(newTuneFile)

@@ -39,6 +39,14 @@ local psToWatt = 735.499
 local hydrolockThreshold = 0.9
 
 local function getTorqueData(device)
+
+  -- Warm up the engine
+  print("Warming up engine...")
+  for i = 1, 50, 1 do
+    simEngine.simulateEngine(0.01, {RPM = 250 + i*10, warmup = true, warmupCycleNum = i, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true)
+  end
+  -- pippo.pluto.paperino()
+
   local curves = {}
   local curveCounter = 1
   local maxTorque = 0
@@ -58,7 +66,10 @@ local function getTorqueData(device)
     if type(k) == "number" and k < maxRPM then
       simEngine.sensors.RPM = k
       simEngine.sensors.TPS = 1
-      torqueCurve[k + 1] = simEngine.simulateEngine(0.01, {RPM = k, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true) - device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
+      if k < 200 then
+        print(k)        
+      end
+      torqueCurve[k + 1] = simEngine.simulateEngine(1/2000, {RPM = k, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true) - device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
           device.torqueCurve[k + 1] = torqueCurve[k + 1]
       powerCurve[k + 1] = torqueCurve[k + 1] * k * torqueToPower
@@ -72,7 +83,7 @@ local function getTorqueData(device)
       end
     end
   end
-  
+  -- pippo.scopa()
   table.insert(curves, curveCounter, { torque = torqueCurve, power = powerCurve, name = "NA", priority = 10 })
   -- dumpToFile("t.txt", torqueCurve)
   -- if device.nitrousOxideInjection.isExisting then
@@ -644,7 +655,7 @@ end
 
 local function new(jbeamData)
   local dummyData               = deepcopy(jbeamData)
-  dummyData.numberOfOutputPorts = 0
+  dummyData.numberOfOutputPorts = 1
   dummyData.name                = "mainEngine"
   dummyData.type                = "combustionEngine"
   engineFunctions               = require("powertrain/combustionEngine").new(dummyData)
@@ -880,7 +891,7 @@ local function new(jbeamData)
     -- table.insert(rawBasePoints, { v.rpm, v.torque })
     simEngine.sensors.RPM = v.rpm
     simEngine.sensors.TPS = 1
-    simEngine.sensors.MAP = 102
+    -- simEngine.sensors.MAP = 102
     table.insert(rawBasePoints, { v.rpm, simEngine.simulateEngine(0.01, {RPM = v.rpm, throttle = 1, instantEngineLoad = 1}, true) })
   end
   local rawBaseCurve = createCurve(rawBasePoints)

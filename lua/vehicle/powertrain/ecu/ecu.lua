@@ -41,7 +41,7 @@ local logs = {}
 local isLoggingEnabled = true
 
 local function reloadTuneFromFile()
-  local tuneFilePath = "mods/yourTunes" .. v.config.partConfigFilename .. "/tune.json"
+  local tuneFilePath = "mods/yourTunes/" .. v.config.partConfigFilename .. "/tune.json"
   local tuneFile = io.open(tuneFilePath, "r")
   if tuneFile == nil then
     local emptyTuneFile = io.open("emptyTune.json", "r")
@@ -125,6 +125,7 @@ local function get3DTableValue(map, x, y, p)
       x_max = map.xValues[i]
       break
     end
+    -- print(map.xValues[i])
     if x >= map.xValues[i] and x < map.xValues[i + 1] then
       x_min = map.xValues[i]
       x_max = map.xValues[i + 1]
@@ -134,7 +135,7 @@ local function get3DTableValue(map, x, y, p)
   local yMax = map.yValues[#map.yValues]
   local xMax = map.xValues[#map.xValues]
 
-  if y >= yMax then
+  if y_max >= yMax then
     y_max = yMax
     y_min = yMax
   end
@@ -142,12 +143,12 @@ local function get3DTableValue(map, x, y, p)
     x_max = xMax
     x_min = xMax
   end
-  -- tuneOutData[map.displayName] = {
+  -- dump({
   --   y_min = y_min,
   --   y_max = y_max,
   --   x_min = x_min,
   --   x_max = x_max
-  -- }
+  -- })
 
   local Q11 = map.values['' .. y_min]['' .. x_min]
   local Q12 = map.values['' .. y_max]['' .. x_min]
