@@ -1,8 +1,8 @@
 # Gt02 Remappable Engines
-Have you ever wanted to open a tuning shop in Belasco City or meybe in Utah?
+Have you ever wanted to open a tuning shop in Belasco City or maybe in Utah?
 Maybe you had the will and money to do so, but you lacked the tools to do the job?
 Well, this changes today!
-This mod allows you to fine tune and map your (or your customer) car's ECU.
+This mod allows you to fine tune and map yours (or your customer's) car ECU.
 With a simple web interface accessible from any browser (Although I reccomend Mozilla Firefox)
 
 # Disclamer
@@ -10,11 +10,11 @@ This mod is NOT physically accurate in any way. It is just a kinda good approxim
 However, I have and will try to keep things as close to a simulation as I can.
 
 # Features
-Ignition timing tuning
-Injectors duty cycle tuning
-knock detection and on the fly correction
-Real time view
-More to come (See Planned Features)
+- Ignition timing tuning
+- Injectors duty cycle tuning
+- knock detection and on the fly correction
+- Real time view
+- More to come (See Planned Features)
 
 # Installation
 Copy the ```yourTunes``` folder in ```YourBeamNgUserDir/GameVersion/mods/```
