@@ -64,11 +64,8 @@ local function getTorqueData(device)
 
   for k, v in pairs(device.torqueCurve) do
     if type(k) == "number" and k < maxRPM then
-      simEngine.sensors.RPM = k
-      simEngine.sensors.TPS = 1
-      if k < 200 then
-        print(k)        
-      end
+      simEngine.state.RPM = k
+      simEngine.state.TPS = 1
       torqueCurve[k + 1] = simEngine.simulateEngine(1/2000, {RPM = k, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true) - device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
           device.torqueCurve[k + 1] = torqueCurve[k + 1]
@@ -889,9 +886,9 @@ local function new(jbeamData)
     maxAvailableRPM = max(maxAvailableRPM, v.rpm)
     
     -- table.insert(rawBasePoints, { v.rpm, v.torque })
-    simEngine.sensors.RPM = v.rpm
-    simEngine.sensors.TPS = 1
-    -- simEngine.sensors.MAP = 102
+    simEngine.state.RPM = v.rpm
+    simEngine.state.TPS = 1
+    -- simEngine.state.MAP = 102
     table.insert(rawBasePoints, { v.rpm, simEngine.simulateEngine(0.01, {RPM = v.rpm, throttle = 1, instantEngineLoad = 1}, true) })
   end
   local rawBaseCurve = createCurve(rawBasePoints)

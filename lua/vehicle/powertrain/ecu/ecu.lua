@@ -149,7 +149,9 @@ local function get3DTableValue(map, x, y, p)
   --   x_min = x_min,
   --   x_max = x_max
   -- })
-
+  -- print(y_max)
+  -- dumpToFile("Sos.map", map)
+  -- print("here")
   local Q11 = map.values['' .. y_min]['' .. x_min]
   local Q12 = map.values['' .. y_max]['' .. x_min]
   local Q21 = map.values['' .. y_min]['' .. x_max]
@@ -183,9 +185,10 @@ local function updateGFX(device, dt)
   tuneOutData.rpm = string.format("%.2f", simEngine.sensors.RPM)
   tuneOutData.throttle = string.format("%.2f", simEngine.sensors.TPS)
   tuneOutData.map = string.format("%.2f", simEngine.sensors.MAP)
+  tuneOutData.maf = string.format("%.2f", simEngine.sensors.MAF*1000)
 
   -- Debug
-  -- tuneOutData.max_pressure_point_dATDC = string.format("%.2f", simEngine.debugValues.max_pressure_point_dATDC)
+  tuneOutData.max_pressure_point_dATDC = string.format("%.2f", simEngine.debugValues.max_pressure_point_dATDC)
 
   --TODO: use for the logs
   tuneOutData.ignTiming = string.format("%.2f", logs[#logs].ignition_advance_deg)
@@ -274,6 +277,10 @@ local function getInjectorsDuty(dt)
   if safeties.fuel_cut then
     return 0
   end
+
+  -- if simEngine.sensors.TPS <= 0.0 then
+  --   return 0
+  -- end
 
   local mapDuty = get3DTableValue(maps['injector-table'], simEngine.sensors.RPM, simEngine.sensors.MAP) / 100 --[[Duty 0-1]]
 

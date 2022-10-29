@@ -229,6 +229,9 @@
             sectionSelector.addEventListener('click', (event) => {
                 console.log(event.target.id.split("-")[0]);
                 const sect = document.getElementById(event.target.id.split("-")[0]);
+                if(!sect){
+                    return;
+                }
                 console.log(sect.style.display );
                 if(sect.style.display === 'none'){
                     sect.style.display = 'block';
@@ -565,7 +568,7 @@
                     delete tuneValues[mapName].values[oldValue];
                     for (let index = 0; index < tuneValues[mapName].yValues.length; index++) {
                         if(tuneValues[mapName].yValues[index] == oldValue){
-                            tuneValues[mapName].yValues[index] == newValue;
+                            tuneValues[mapName].yValues[index] = Number(newValue);
                         }
                     }
                     console.log(tuneValues);

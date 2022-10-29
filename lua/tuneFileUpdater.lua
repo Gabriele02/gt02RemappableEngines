@@ -5,6 +5,15 @@ local updatesLookup = {
         newTune.version = 0.1
         for mapName, map in pairs(oldTune) do
             newTune[mapName].type = '3D'
+            if mapName == "advance-table" then
+                newTune[mapName].sectionName = "ignition"
+                newTune[mapName].displayName = "Ignition Advance Table"
+                newTune[mapName].unit = "Degº"
+            elseif mapName == "injector-table" then
+                newTune[mapName].sectionName = "injector"
+                newTune[mapName].displayName = "Injector Duty Table"
+                newTune[mapName].unit = "%"
+            end
         end
 
         newTune.options = {}
@@ -67,14 +76,19 @@ local updatesLookup = {
                     local val = newTune[mapName].xValues[#newTune[mapName].xValues]
                     for i = #newTune[mapName].xValues, 29, 1 do
                         -- newTune[mapName].xValues[i] = val
-                        table.insert(newTune[mapName].xValues, i, val)
+                        table.insert(newTune[mapName].xValues, i, val + i)
                     end
                 end
                 if #newTune[mapName].yValues < 15 then
                     local val = newTune[mapName].yValues[#newTune[mapName].yValues]
                     for i = #newTune[mapName].yValues, 14, 1 do
                         -- newTune[mapName].yValues[i] = val
-                        table.insert(newTune[mapName].yValues, i, val)
+                        table.insert(newTune[mapName].yValues, i, val + i)
+                        newTune[mapName].values["" .. (val + i)] = {}
+                        for _, xVal in ipairs(newTune[mapName].xValues) do
+                            -- newTune[mapName].xValues[i] = val
+                            newTune[mapName].values["" .. (val + i)]["" .. xVal] = 0
+                        end
                     end
                 end
             end

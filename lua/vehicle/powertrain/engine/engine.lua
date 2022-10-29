@@ -27,14 +27,29 @@ local engineMeasurements = {
   throttle_body_max_flow = 0,
 }
 
-local sensors = {
+local state = {
   TPS = 0,--[[0-1]]
   MAF = 0,--[[kg/s]]
-  MAP = 70,--01.325,--[[kPa]]
+  MAP = 100,--01.325,--[[kPa]]
   RPM = 0,--[[1/s]]
   AV = 0,--[[rad/s]]
   lambda = 0,
 }
+
+-- Same as state but updated at slower (More realistic) intervals
+local sensors = {
+  TPS = 0,--[[0-1]]
+  MAF = 0,--[[kg/s]]
+  MAP = 100,--01.325,--[[kPa]]
+  RPM = 0,--[[1/s]]
+  AV = 0,--[[rad/s]]
+  lambda = 0,
+}
+
+local debugValues = {
+  max_pressure_point_dATDC = 0,
+}
+
 -- local air_density = 1 -- should be based on temperature
 -- local fuel_density = 1.3 -- ^^
 
@@ -154,13 +169,15 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
   local torque = 0
 
 
-  sensors.RPM = valuesOverwrite.RPM ~= nil and valuesOverwrite.RPM or math.abs(thisEngine.outputRPM) -- For consistency
-  sensors.AV = sensors.RPM * rpmToAV
+  state.RPM = valuesOverwrite.RPM ~= nil and valuesOverwrite.RPM or math.abs(thisEngine.outputRPM) -- For consistency
+  state.AV = state.RPM * rpmToAV
+  sensors.RPM = state.RPM
+  sensors.AV = state.AV
 
   engineMeasurements.thermal_efficiency = 1 /
       (thisEngine.invBurnEfficiencyTable[math.floor(thisEngine.instantEngineLoad * 100)] or 1)
   -- print(test_curve[RPM])
-  engineMeasurements.volumetric_efficiency = volumetric_efficiency_curve[math.floor(sensors.RPM)] or 0
+  engineMeasurements.volumetric_efficiency = volumetric_efficiency_curve[math.floor(state.RPM)] or 0
   -- engineMeasurements.volumetric_efficiency = engineMeasurements.volumetric_efficiency --* combustionEngine.intakeAirDensityCoef+ (electrics.values.turboBoost / 14.7)
 
   --AIR
@@ -169,7 +186,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
   -- FUEL
   -- Varies with engine map
   -- print('got: ' .. get3DTableValue(ecu.maps['injector-table'], RPM, MAP, true))
-  local injector_duty = sensors.TPS <= 0.0 and 0 or ecu.getInjectorsDuty(dt)
+  local injector_duty = ecu.getInjectorsDuty(dt)
 
   -- local fuelflow_cfm = injector_lb_h * engineMeasurements.num_cylinders * injector_duty * 0.000266974
 
@@ -180,7 +197,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
     air_fuel_ratio = 0
   else
     -- air_fuel_ratio = air_mass_flow / fuel_mass_flow
-    air_fuel_ratio = sensors.MAF / fuel_mass_flow
+    air_fuel_ratio = state.MAF / fuel_mass_flow
   end
   if air_fuel_ratio ~= air_fuel_ratio then
     air_fuel_ratio = 0
@@ -188,8 +205,8 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
 
   if not valuesOverwrite.doNotRandom and air_fuel_ratio > 17 or air_fuel_ratio < 9 then
     if air_fuel_ratio > 17 then
-      misfire_probability = (air_fuel_ratio / 20) * (sensors.MAP / 100) * dt
-      local damage_probability = (air_fuel_ratio / 25) ^ 9 * (sensors.MAP / 1000) * dt
+      misfire_probability = (air_fuel_ratio / 20) * (state.MAP / 100) * dt
+      local damage_probability = (air_fuel_ratio / 25) ^ 9 * (state.MAP / 1000) * dt
       if air_fuel_ratio < 25 and math.random() < damage_probability then
         thisEngine:scaleOutputTorque(1 - (damage_probability * 100000))
         misfire_timer = 0.8 * math.random()
@@ -209,7 +226,10 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
   end
 
   local lambda = air_fuel_ratio / 14.7 -- AFR / Stoichyometric
-  sensors.lambda = lambda
+  state.lambda = lambda
+  if tick % 500 == 0 then --TODO: fix timing
+    sensors.lambda = state.lambda
+  end
   -- print('fuel_mass_flow: ' .. fuel_mass_flow)
   -- print("throttle: " .. string.format("%.2f",throttle) .. ", afr: " .. string.format("%.2f",air_fuel_ratio))
   -- print("lambda: " .. lambda)
@@ -232,11 +252,11 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
 
   local max_pressure_point_dATDC
   if fuel_burn_speed >= 0 then
-    -- fuel_burn_duration_deg = ((20 * (engineMeasurements.stroke_cm / 8.2) / (((MAP / 100) ^ 0.3))) * sensors.RPM / 3600) / fuel_burn_speed
+    -- fuel_burn_duration_deg = ((20 * (engineMeasurements.stroke_cm / 8.2) / (((MAP / 100) ^ 0.3))) * state.RPM / 3600) / fuel_burn_speed
     -- fuel_burn_duration_deg = ((20*(engineMeasurements.stroke_cm/8.2)/((((MAP+100)/100)^0.8)))*(RPM/3600)^0.9)/ fuel_burn_speed
     -- fuel_burn_duration_deg = ((20*(engineMeasurements.stroke_cm/8.2)/((((MAP+100)/100)^0.8)))*(RPM/3600))/ fuel_burn_speed
-    fuel_burn_duration_deg = ((20 * (engineMeasurements.stroke_cm / 8.2) / ((((sensors.MAP + 100) / 100) ^ 0.8))) *
-        ((sensors.RPM + 1800) / 3600) ^ 0.8) / fuel_burn_speed
+    fuel_burn_duration_deg = ((20 * (engineMeasurements.stroke_cm / 8.2) / ((((state.MAP + 100) / 100) ^ 0.8))) *
+        ((state.RPM + 1800) / 3600) ^ 0.8) / fuel_burn_speed
 
     -- if debug and tick % 50 == 0 then
     --   print((20 / ((engineMeasurements.volumetric_efficiency ^ 0.2) * (engine.forcedInductionCoef^0.2))))
@@ -248,6 +268,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
     -- print('ignition_advance: ' .. ignition_advance_deg)
     -- print('burn duratoin degrees: ' .. fuel_burn_duration_deg)
     -- print('max_pressure_point_dATDC: ' .. max_pressure_point_dATDC)
+    debugValues.max_pressure_point_dATDC = max_pressure_point_dATDC
     if max_pressure_point_dATDC < 0 then
       detonationFactor = math.min(math.max(1 - math.abs(max_pressure_point_dATDC / fuel_burn_duration_deg), 0), 1)
       -- print("KNOCK KNOCK")
@@ -268,7 +289,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
     --   print("Ignition knock retard: " .. ecu.corrections.ignition_knock_retard)
     -- end
 
-    local combustion_pressure = engineMeasurements.compression_ratio * 17 * ((sensors.MAP / 100) ^ 2) *
+    local combustion_pressure = engineMeasurements.compression_ratio * 17 * ((state.MAP / 100) ^ 2) *
         (engineMeasurements.volumetric_efficiency or 0) -- ^ 2 may give incorrect results for turbo
     if ignition_advance_deg > 0 then
       combustion_pressure = combustion_pressure + (ignition_advance_deg * 2)
@@ -297,7 +318,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
       prev_data.slowIgnitionErrorInterval = thisEngine.slowIgnitionErrorInterval
       prev_data.modified = false
     end
-    if max_pressure_point_dATDC >= 30 and sensors.RPM > 2 * thisEngine.idleRPM and
+    if max_pressure_point_dATDC >= 30 and state.RPM > 2 * thisEngine.idleRPM and
         not (max_pressure_point_dATDC == conversions.inf or max_pressure_point_dATDC == -conversions.inf) then
       -- engine.sustainedAfterFireCoef = 100
       -- engine.sustainedAfterFireFuelDelay:push(1000)
@@ -329,7 +350,7 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
     local area_cm2 = math.pi * radius_cm * radius_cm
     local a = area_cm2 * conversions.cm2_to_in2
 
-    local n = sensors.RPM / 2
+    local n = state.RPM / 2
 
     local k = engineMeasurements.num_cylinders
 
@@ -349,13 +370,13 @@ local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
 
     local afr_power_factor = afr_power_curve[math.max(math.min(math.floor(air_fuel_ratio * 10), 270), 0)] or 0
     local SHP = IHP * engineMeasurements.thermal_efficiency * afr_power_factor -- * engine.forcedInductionCoef--* (engineMeasurements.volumetric_efficiency * MAP / 100)
-    torque = (sensors.RPM < 100 or SHP < 0.5) and 0 or
-        (math.min(((SHP * 5280 / (sensors.RPM + 1e-30)) * 1.3558), 10000000)) * thisEngine.outputTorqueState * fuel_misfire
+    torque = (state.RPM < 100 or SHP < 0.5) and 0 or
+        (math.min(((SHP * 5280 / (state.RPM + 1e-30)) * 1.3558), 10000000)) * thisEngine.outputTorqueState * fuel_misfire
     if debug and tick % 50 == 0 then
-      print('sensors.RPM: ' ..
-        sensors.RPM ..
+      print('state.RPM: ' ..
+        state.RPM ..
         ', throttle: ' ..
-        sensors.TPS ..
+        state.TPS ..
         ', SHP: ' ..
         SHP ..
         ', torque: ' ..
@@ -371,7 +392,9 @@ M.reset = reset
 M.updateGFX = updateGFX
 M.simulateEngine = simulateEngine
 
+M.state = state
 M.sensors = sensors
+M.debugValues = debugValues
 M.engineMeasurements = engineMeasurements
 M.ecu = ecu
 M.intake = intake
