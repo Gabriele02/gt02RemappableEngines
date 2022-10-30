@@ -41,6 +41,10 @@ local logs = {}
 local isLoggingEnabled = true
 
 local function reloadTuneFromFile()
+  if not v.config or not v.config.partConfigFilename then
+    guihooks.message("ERROR: no vehicle configuration loaded! Please load a configuration")
+    return
+  end
   local tuneFilePath = "mods/yourTunes/" .. v.config.partConfigFilename .. "/tune.json"
   local tuneFile = io.open(tuneFilePath, "r")
   if tuneFile == nil then
