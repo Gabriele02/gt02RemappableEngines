@@ -251,6 +251,7 @@
         }
 
         let tuneValues = {};
+        const SUPPORTED_TUNE_VERSIONS = [0.21];
         const defaults = {
             xValues: [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
             yValues: [100, 93, 86, 79, 72, 65, 58, 51, 44, 37, 30, 23, 16, 9, 2].sort((a, b) => b - a),
@@ -752,7 +753,7 @@
             reader.onload = function(event) {
                 const contents = event.target.result;
                 tuneValues = JSON.parse(contents);
-                if(tuneValues.version != 0.2) {
+                if(!SUPPORTED_TUNE_VERSIONS.includes(tuneValues.version )) {
                     console.log("Found old tune: version "  + tuneValues.version);
                     alert("Please, open BeamNG and update the tune. The tune may not be loaded correctly if not updated.");
                 }

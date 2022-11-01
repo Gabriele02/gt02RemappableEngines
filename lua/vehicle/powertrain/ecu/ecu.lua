@@ -1,7 +1,7 @@
 local tunerServer = require("tunerServer/tunerServer")
 
 local M = {}
-M.SUPPORTED_MAPS_VERSION = 0.2
+M.SUPPORTED_MAPS_VERSION = 0.21
 
 local simEngine = nil -- engine.lua
 local combustionEngine = nil -- tunableCombustionEngine.lua

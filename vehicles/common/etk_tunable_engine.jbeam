@@ -55,7 +55,7 @@
         "num_cylinders":6,
         "injector_cc_min": 236,
         "throttle_body_diameter_mm":50,
-        "idle_throttle":0.13,
+        "idle_throttle":0.065,
         "volumetric_efficiency":[
             ["rpm", "ve"],
             [0,	0.00],

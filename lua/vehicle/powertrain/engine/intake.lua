@@ -90,7 +90,7 @@ end
 
 local function getThrottleCv()
   return throttle_cv[math.min(math.ceil(
-    math.acos(1 - simEngine.state.TPS^2) * 57.296--[[rad to deg]]
+    math.acos(1 - simEngine.state.TPS ^ (1.5)--[[^ 2]]) * 57.296--[[rad to deg]]
   ), 90.0)] + 1E-10
 end
 

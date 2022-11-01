@@ -1,4 +1,10 @@
 local M = {}
+local function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
+  end
+  
 local updatesLookup = {
     _nilTo01 = function(oldTune)
         local newTune = deepcopy(oldTune)
@@ -84,26 +90,71 @@ local updatesLookup = {
                     for i = #newTune[mapName].yValues, 14, 1 do
                         -- newTune[mapName].yValues[i] = val
                         table.insert(newTune[mapName].yValues, i, val + i)
-                        newTune[mapName].values["" .. (val + i)] = {}
-                        for _, xVal in ipairs(newTune[mapName].xValues) do
-                            -- newTune[mapName].xValues[i] = val
-                            newTune[mapName].values["" .. (val + i)]["" .. xVal] = 0
-                        end
+                        --newTune[mapName].values["" .. (val + i)] = {}
+                        --for _, xVal in ipairs(newTune[mapName].xValues) do
+                        --    -- newTune[mapName].xValues[i] = val
+                        --    newTune[mapName].values["" .. (val + i)]["" .. xVal] = 0
+                        --end
                     end
                 end
             end
         end
         return newTune
     end,
+    _02To021 = function (oldTune)
+        local newTune = deepcopy(oldTune)
+        newTune.version = 0.21
+        for mapName, map in pairs(oldTune) do
+            if type(map) == "table" and map.type == '3D' then
+                print("Updating map: " .. mapName)
+                dump(newTune[mapName].yValues)
+                print("---")
+                for _, yVal in pairs(newTune[mapName].yValues) do
+                    if newTune[mapName].values["" .. yVal] == nil or tablelength(newTune[mapName].values["" .. yVal]) < 30 then
+                        dump(newTune[mapName].values["" .. yVal])
+                        print("len: " .. (tablelength(newTune[mapName].values["" .. yVal])))
+                        if newTune[mapName].values["" .. yVal] == nil then
+                            newTune[mapName].values["" .. yVal] = {}
+                        end
+                        local c = 0
+                        for _, xVal in ipairs(newTune[mapName].xValues) do
+                            newTune[mapName].values["" .. yVal]["" .. xVal] = 0
+                            c = c + 1
+                        end
+                        print(c)
+                    end
+                end
+            end
+        end
+        return newTune
+    end
 }
 local multipleUpdatesLookup = {
+    --#region To 0.2
     _nilTo02 = function(oldTune)
         local tune01 = updatesLookup['_nilTo01'](oldTune)
-        dumpToFile("tune01", tune01)
         local tune02 = updatesLookup['_01To02'](tune01)
-        dumpToFile("tune02", tune02)
         return tune02
     end,
+    --#endregion To 0.2
+
+
+    --#region To 0.21
+    _nilTo021 = function(oldTune)
+        local tune01 = updatesLookup['_nilTo01'](oldTune)
+
+        local tune02 = updatesLookup['_01To02'](tune01)
+
+        local tune021 = updatesLookup['_02To021'](tune02)
+
+        return tune021
+    end,
+    _01To021 = function(oldTune)
+        local tune02 = updatesLookup['_01To02'](oldTune)
+        local tune021 = updatesLookup['_02To021'](tune02)
+        return tune021
+    end,
+    --#endregion To 0.21
 }
 
 local function updateTuneFile(tuneFilePath, updateToVersion)
@@ -132,8 +183,8 @@ local function updateTuneFile(tuneFilePath, updateToVersion)
         (tostring(tune.version):gsub('%.', '') or 'nil') .. "To" .. tostring(updateToVersion):gsub('%.', '')
     local updateFunc = updatesLookup[lookupValue]
     local newTune = nil
+    print("Updating :" .. lookupValue)
     if updateFunc == nil then
-        print("Updating :" .. lookupValue)
         newTune = multipleUpdatesLookup[lookupValue](tune)
     else
         newTune = updateFunc(tune)
