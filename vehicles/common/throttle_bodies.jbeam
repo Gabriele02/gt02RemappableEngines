@@ -1,0 +1,80 @@
+{
+    // Drive-by-Wire Throttle Bodies
+    // TODO: maybe add a parameter to specify the throttle body actuator max speed
+    // NOTE: as of now, all throttle bodies act as a 1:1 ratio between the pedal and the throttle body, no pedalMap is used
+    "drive_by_wire_throttle_body_25mm": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "25mm Drive-by-Wire Throttle Body",
+            "value": 125,
+        },
+
+        "slotType": "tunable_engine_drive_by_wire_throttle_body",
+        "mainEngine": {
+            "intakeThrottle": {
+                "type": "drive-by-wire",
+                "diameter_mm": 25 //mm
+            }
+        }
+    },
+    "drive_by_wire_throttle_body_40mm": {
+        "information":{
+            "authors":"BeamNG",
+            "name":"40mm Drive-by-Wire Throttle Body",
+            "value":350,
+        },
+
+        "slotType" : "tunable_engine_drive_by_wire_throttle_body",
+        "mainEngine": {
+            "intakeThrottle": {
+                "type": "drive-by-wire",
+                "diameter_mm": 40 //mm
+            }
+        }
+    },
+    "drive_by_wire_throttle_body_50mm": {
+        "information":{
+            "authors":"BeamNG",
+            "name":"50mm Drive-by-Wire Throttle Body",
+            "value":425,
+        },
+
+        "slotType" : "tunable_engine_drive_by_wire_throttle_body",
+        "mainEngine": {
+            "intakeThrottle": {
+                "type": "drive-by-wire",
+                "diameter_mm": 50 //mm
+            }
+        }
+    },
+    "drive_by_wire_throttle_body_65mm": {
+        "information":{
+            "authors":"BeamNG",
+            "name":"65mm Drive-by-Wire Throttle Body",
+            "value":580,
+        },
+
+        "slotType" : "tunable_engine_drive_by_wire_throttle_body",
+        "mainEngine": {
+            "intakeThrottle": {
+                "type": "drive-by-wire",
+                "diameter_mm": 65 //mm
+            }
+        }
+    },
+    "drive_by_wire_throttle_body_80mm": {
+        "information":{
+            "authors":"BeamNG",
+            "name":"80mm Drive-by-Wire Throttle Body",
+            "value":700,
+        },
+
+        "slotType" : "tunable_engine_drive_by_wire_throttle_body",
+        "mainEngine": {
+            "intakeThrottle": {
+                "type": "drive-by-wire",
+                "diameter_mm": 80 //mm
+            }
+        }
+    },
+}

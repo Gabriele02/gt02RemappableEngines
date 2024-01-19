@@ -94,24 +94,8 @@ local function getThrottleCv()
   ), 90.0)] + 1E-10
 end
 
-local function calculateThrottlePosition(dt, valuesOverwrite)
-  local throttle = electrics.values[combustionEngine.electricsThrottleName]
-  -- if combustionEngine.outputRPM > 0 and combustionEngine.outputRPM < 700 then
-  local idleThrottle = intakeMeasurements.idle_throttle + (combustionEngine.starterEngagedCoef * combustionEngine.starterThrottleKillCoef * 0.05 )--math.min(1 / ((simEngine.state.RPM / (750) + 1) ^ 2.75), 1)
-  if (simEngine.state.RPM > 1500) and (throttle >= idleThrottle or throttle == 0) then
-    idleThrottle = 0
-  end
-
-  throttle = math.min(idleThrottle + throttle * (1 - idleThrottle), 1)
-  -- throttle = math.min(math.max(throttle * combustionEngine.starterThrottleKillCoef * combustionEngine.ignitionCoef, 0), 1)
-  -- end
-  -- print(throttle)
-  throttle = simEngine.ecu.throttleSmoother:getUncapped(throttle, dt)
-  combustionEngine.throttle = 0
-  if simEngine.state.RPM <= 100 then
-    throttle = 1
-  end
-
+local function calculateThrottlePosition(dt, valuesOverwrite, tick)
+  local throttle = simEngine.ecu.getThrottlePosition(dt, tick)
   if combustionEngine.ignitionCoef == 0 and valuesOverwrite.throttle == nil then
     throttle = 0
   end
@@ -178,15 +162,17 @@ end
 local massAirflowIntoIntake = 0
 local massAirflowOutIntake = 0
 local function calculateIntakePressureAndFlowInOutBalance(dt, tick, valuesOverwrite)
-  calculateThrottlePosition(dt, valuesOverwrite)
+  calculateThrottlePosition(dt, valuesOverwrite, tick)
 
   -- Get actual intake pressure and temperature, before throttle body
-  intakeMeasurements.IAP = 1 * atmToKPa--[[kPa]]
-  intakeMeasurements.IAT = 293.15--[[K]]
+  --intakeMeasurements.IAP = 1 * atmToKPa--[[kPa]]
+  --intakeMeasurements.IAT = 293.15--[[K]]
 
   -- Calculate air density
   intakeMeasurements.airDensity = (intakeMeasurements.IAP * 1000) --[[kPa to Pa]] / (287.0500676--[[J/(Kg*K)]] * intakeMeasurements.IAT)
-
+  --TODO: calc IAP from IAT and airDensity
+  --intakeMeasurements.IAP = intakeMeasurements.airDensity * 287.0500676 * intakeMeasurements.IAT / 1000 --[[Pa to kPa]]
+  
   --#region Mass Airflow into intake manifold MathWorks method
   -- Mass airflow into intake manifold
   -- mai = 2.821 - (0.05231 * throttle_angle) + (0.10299 * (throttle_angle ^ 2)) - (0.00063 * (throttle_angle ^ 3)) --[[g/s]]
@@ -213,11 +199,14 @@ local function calculateIntakePressureAndFlowInOutBalance(dt, tick, valuesOverwr
   -- local MAP_derivative = ((0.083) * intakeMeasurements.IAT / (3)) * (massAirflowIntoIntake - massAirflowOutIntake)
 
   -- Mass airflow into engine from intake manifold
-  massAirflowOutIntake = simEngine.state.MAF * 1000 --[[kg/s to g/s]]
+  massAirflowOutIntake = simEngine.state.MAFTotal * 1000 --[[kg/s to g/s]]
   --(-0.366) + (0.0879 * simEngine.state.AV * simEngine.state.MAP) - (0.0337 * simEngine.state.AV * (simEngine.state.MAP * simEngine.state.MAP)) + (0.0001 * (simEngine.state.AV * simEngine.state.AV) * simEngine.state.MAP)
 
-  simEngine.state.MAP = math.max(math.min(mapAtm + (MAP_derivative * dt), 0.99 * intakeMeasurements.IAP / atmToKPa), 0) * atmToKPa
+  simEngine.state.MAP = valuesOverwrite.map and valuesOverwrite.map or math.max(math.min(mapAtm + (MAP_derivative * dt), 0.99 * intakeMeasurements.IAP / atmToKPa), 0) * atmToKPa
   if tick % 150 == 0 then
+    simEngine.sensors.MAP = simEngine.state.MAP
+  end
+  if TuningCheatOverwrite then
     simEngine.sensors.MAP = simEngine.state.MAP
   end
   -- Calculate engine load
@@ -234,9 +223,18 @@ local function calculateIntakePressureAndFlowInOutBalance(dt, tick, valuesOverwr
   local air_mass_flow = (IMAP / 60) * (engineMeasurements.volumetric_efficiency or 0) *
       (engineMeasurements.displacement_cc / 1000) * (28.97--[[MM Air]]) / (8.314--[[R]])--[[g/s]] / 1000 --[[g/s to kg/s]]
 
-  simEngine.state.MAF = air_mass_flow
+  local air_mass_flow_mg_s = air_mass_flow * 1000 --[[kg/s to g/s]] * 1000 --[[g/s to mg/s]] / engineMeasurements.num_cylinders
+  local mg_per_combustion = air_mass_flow_mg_s / simEngine.state.combustionsPerSecond
+
+  simEngine.state.MAF = mg_per_combustion
+  simEngine.state.MAFTotal = air_mass_flow
   if tick % 500 == 0 then
     simEngine.sensors.MAF = simEngine.state.MAF
+    simEngine.sensors.MAFTotal = simEngine.state.MAFTotal
+  end
+  if TuningCheatOverwrite then
+    simEngine.sensors.MAF = simEngine.state.MAF
+    simEngine.sensors.MAFTotal = simEngine.state.MAFTotal
   end
 
 end

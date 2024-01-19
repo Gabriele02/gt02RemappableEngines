@@ -1,0 +1,37 @@
+{
+    "fuel_pressure_regulator_3bar": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "3 Bar Fuel Pressure Regulator",
+            "value": 50,
+        },
+
+        "slotType": "tunable_engine_fuel_pressure_regulator",
+        "mainEngine": {
+            "fuelSystemFuelPressureRegulator": {
+                "pressure_bar": 3,
+                "pressureRegulatorType": "vaccum_line", // vaccum line or adjustable
+            }
+        }
+    },
+
+    //"fuel_pressure_regulator_adjustable": {
+    //    "information": {
+    //        "authors": "BeamNG",
+    //        "name": "Adjustable Fuel Pressure Regulator",
+    //        "value": 190,
+    //    },
+    //    "variables":[
+    //        ["name", "type", "unit", "category", "default", "min", "max", "title", "description"]
+    //        ["$target_fuel_pressure", "range", "Bar", "Engine", 3, 1, 8, "Target Fuel Pressure", "Target fuel pressure above manifold absolute pressure"{"stepDis":0.5}],
+    //    ]
+    //    "slotType": "tunable_engine_fuel_pressure_regulator",
+    //    "mainEngine": {
+    //        "fuelSystemFuelPressureRegulator": {
+    //            "pressure_bar": "$target_fuel_pressure",
+    //            "pressureRegulatorType": "adjustable", // vaccum line or adjustable
+    //        }
+    //    }
+    //},
+
+}

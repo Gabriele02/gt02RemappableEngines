@@ -1,31 +1,810 @@
-//{
-//"etk_engine_i6_tunable_ecu": {
-//    "information":{
-//        "authors":"BeamNG",
-//        "name":"Tunable ECU",
-//        "value":3500,
-//    },
-//    "slotType" : "etk_engine_i6_ecu",
-//    "powertrain": [
-//        ["type", "name", "inputName", "inputIndex"],
-//        ["tunableCombustionEngine", "mainEngine", "dummy", 0],
-//    ],
-//
-//    //"mainEngine":{
-//    //    "idleRPM":650,
-//    //    "revLimiterRPM":7000,
-//    //    "revLimiterType": "soft",
-//    //},
-//
-//	//"controller": [
-//	//	["fileName"],
-//	//	["tunableController"],
-//	//],
-//},
-//}
-
 {
-"etk_tunable_engine_i6": {
+// INTAKE
+// -RUNNERS
+"etk_fixed_runners3x30": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Fixed Runners 3cm x 30cm",
+        "value":275,
+    },
+
+    "slotType" : "etk_tunable_engine_runers_i6",
+    "mainEngine": {
+        "intakeRunners": {
+            "type": "fixed",
+            "length_cm": 30, //cm
+            "diameter_cm": 3, //cm
+        }
+    }
+},
+"etk_fixed_runners3x20": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Fixed Runners 3cm x 20cm",
+        "value":330,
+    },
+
+    "slotType" : "etk_tunable_engine_runers_i6",
+    "mainEngine": {
+        "intakeRunners": {
+            "type": "fixed",
+            "length_cm": 20, //cm
+            "diameter_cm": 3, //cm
+        }
+    }
+},
+"etk_fixed_runners3x40": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Fixed Runners 3cm x 40cm",
+        "value":400,
+    },
+
+    "slotType" : "etk_tunable_engine_runers_i6",
+    "mainEngine": {
+        "intakeRunners": {
+            "type": "fixed",
+            "length_cm": 40, //cm
+            "diameter_cm": 3, //cm
+        }
+    }
+},
+"etk_fixed_tunbable_runners": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Fixed Length Tunable Runners",
+        "value":600,
+    },
+
+    "slotType" : "etk_tunable_engine_runers_i6",
+    "variables": [
+        ["name", "type", "unit", "category", "default", "min", "max", "title", "description"]
+        ["$runners_length", "range", "cm", "Engine", 30, 5, 50, "Runners length", "Runners length in cm"{"stepDis":0.5}],
+        ["$runners_diameter", "range", "cm", "Engine", 3, 1, 7, "Runners diameter", "Runners diameter in cm"{"stepDis":0.1}],
+	],
+    "mainEngine": {
+        "intakeRunners": {
+            "type": "fixed",
+            "length_cm": "$runners_length", //cm
+            "diameter_cm": "$runners_diameter", //cm
+        }
+    }
+},
+
+"etk_variable_length_runners": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Variable Length Runners 10-50mm",
+        "value":1500,
+    },
+
+    "slotType" : "etk_tunable_engine_runers_i6",
+    "mainEngine": {
+        "intakeRunners": {
+            "type": "variable",
+            "min_length_cm": 10,
+            "max_length_cm": 50,
+        }
+    }
+},
+
+"etk_tunable_engine_i6_forced_induction_small_turbocharger": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Small Turbocharger",
+        "value":450,
+    },
+    "slotType" : "etk_tunable_engine_i6_forced_induction",
+    "turbocharger": {
+        "bovSoundFileName":"event:>Vehicle>Forced_Induction>Turbo_02>turbo_bov_tuned",
+        "hissLoopEvent":"event:>Vehicle>Forced_Induction>Turbo_07>turbo_hiss_tuned",
+        "whineLoopEvent":"event:>Vehicle>Forced_Induction>Turbo_05>turbo_spin_tuned",
+        "turboSizeCoef": 0.55,
+        "bovSoundVolumeCoef": 0.28,
+        "hissVolumePerPSI": 0.028,
+        "whineVolumePer10kRPM": 0.0065,
+        "whinePitchPer10kRPM": 0.02,
+        "wastegateStart":11.5,
+        "wastegateLimit":12.5,
+        "maxExhaustPower": 11000,
+        "backPressureCoef": 0.000035,
+        "frictionCoef": 10.4,
+        "inertia":1.2,
+        "damageThresholdTemperature": 610,
+        "pressurePSI":[
+            //turbineRPM, pressure(PSI)
+            [0,         -3.5],
+            [30000,     0],
+            [60000,     5],
+            [90000,     8],
+            [150000,    13],
+            [200000,    16],
+            [250000,    18],
+        ],
+        "engineDef":[
+            //engineRPM, efficiency, exhaustFactor
+            [0,     0.0,    0.0],
+            [650,   0.10,   0.08],
+            [1400,  0.24,   0.14],
+            [2000,  0.45,    0.58],
+            [2500,  0.73,    0.8],
+            [3000,  0.86,    1.0],
+            [4000,  0.84,    1.0],
+            [5000,  0.68,    1.0],
+            [5500,  0.65,    1.0],
+            [6000,  0.58,    1.0],
+            [7000,  0.44,    1.0],
+            [8000,  0.40,    1.0],
+            [9000,  0.38,    1.0],
+            [10000, 0.32,    1.0],
+        ],
+        "ALSTime" : 1,
+		
+		"ALS" : true,
+		"ALSExhaustPower" : 180000,
+		"ALSPressure" : 0,
+		"ALSInstantLoadDrop" : 0.7,
+		
+    },
+    "mainEngine": {
+        //turbocharger name`
+        "turbochargerLuaFileName" = "powertrain/ALSturbocharger",
+        "turbocharger":"turbocharger",
+        "$*instantAfterFireCoef": 1.8,
+        "$*sustainedAfterFireCoef": 1.25,
+
+        //damage deformGroups
+        "deformGroups_turbo":["mainEngine_turbo","mainEngine_intercooler","mainEngine_piping"]
+    },
+    "soundConfig": {
+        "$+maxLoadMix": 0.1,
+        "$+intakeMuffling":-0.2,
+        "$+mainGain":1.5,
+        "$+eqLowGain": 1.5,
+    },
+    "soundConfigExhaust": {
+        "$+maxLoadMix": 0.1,
+        "$+minLoadMix": 0.01,
+        "$+mainGain": 0.5,
+        "$+offLoadGain": 0.00,
+        "$+eqLowGain": 0.25,
+        "$+eqFundamentalGain": 0.5,
+    },
+    "flexbodies": [
+        ["mesh", "[group]:", "nonFlexMaterials"],
+        ["etk_header_i6_turbo", ["etk_engine", "etk_header"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        ["etk_intake_i6_turbo", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        {"deformGroup":"mainEngine_piping", "deformMaterialBase":"etk800", "deformMaterialDamaged":"invis"},
+        ["etk_icpipe_t_i6", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        ["etk_icpipe_i_i6", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        {"deformGroup":""},
+        ["etk_intercooler", ["etk_intercooler", "etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+    ],
+    "nodes": [
+         ["id", "posX", "posY", "posZ"],
+         {"selfCollision":false},
+         {"collision":true},
+         {"frictionCoef":0.5},
+         {"nodeMaterial":"|NM_METAL"},
+
+         //turbo
+         {"nodeWeight":3.0},
+         {"group":"etk_turbo"},
+         ["turbo", -0.2, -1.3, 0.52],
+
+         //exhaust manifold
+         {"group":"etk_header"},
+         ["exm1r", -0.2, -0.9, 0.27],
+
+         //intercooler
+         {"nodeWeight":1.5},
+         {"group":"etk_intercooler"},
+         ["interc1r", -0.3, -2.1, 0.32],
+         ["interc1l", 0.3, -2.1, 0.32],
+
+         //airbox
+         {"nodeWeight":1.0},
+         {"group":"etk_airbox"},
+         {"nodeMaterial":"|NM_PLASTIC"},
+         ["airb1", 0.35, -1.75, 0.8],
+         ["airb2", -0.35, -1.9, 0.76],
+         {"engineGroup":""},
+         {"group":""},
+    ],
+    "beams": [
+          ["id1:", "id2:"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+
+          //turbo
+          {"beamSpring":2750550,"beamDamp":125},
+          {"beamDeform":30000,"beamStrength":"FLT_MAX"},
+          {"deformLimitExpansion":""},
+          {"deformGroup":"mainEngine_turbo", "deformationTriggerRatio":0.001}
+          ["turbo", "e1r"],
+          ["turbo", "e1l"],
+          ["turbo", "e2r"],
+          ["turbo", "e2l"],
+          ["turbo", "e3r"],
+          ["turbo", "e3l"],
+          ["turbo", "e4l"],
+          ["turbo", "e4r", {"isExhaust":"mainEngine"}],
+
+          //exhaust manifold
+          {"beamSpring":2750550,"beamDamp":125},
+          {"beamDeform":30000,"beamStrength":"FLT_MAX"},
+          ["exm1r", "e1r"],
+          ["exm1r", "e1l"],
+          ["exm1r", "e2r"],
+          ["exm1r", "e2l"],
+          ["exm1r", "e3r"],
+          ["exm1r", "e3l"],
+          ["exm1r", "e4r"],
+          ["exm1r", "e4l"],
+          ["exm1r", "turbo", {"isExhaust":"mainEngine"}],
+
+          //intercooler
+          {"beamSpring":1001000,"beamDamp":100},
+          {"beamDeform":5000,"beamStrength":"FLT_MAX"},
+          {"deformGroup":"mainEngine_intercooler", "deformationTriggerRatio":0.1}
+          {"deformLimitExpansion":1.5},
+          ["interc1r", "interc1l"],
+          ["interc1l", "f18l"],
+          ["interc1l", "f11ll"],
+          ["interc1l", "f13ll"],
+          ["interc1l", "f18"],
+          ["interc1l", "f15"],
+          ["interc1r", "f11rr"],
+          ["interc1r", "f18r"],
+          ["interc1r", "f18"],
+          ["interc1r", "f13rr"],
+          ["interc1r", "f15"],
+          ["interc1r", "f10rr"],
+          ["interc1l", "f10ll"],
+          {"deformLimitExpansion":""},
+
+          //intercooler piping
+          {"beamSpring":501000,"beamDamp":400},
+          {"beamDeform":5000,"beamStrength":15000},
+          {"deformGroup":"mainEngine_piping", "deformationTriggerRatio":0.01}
+          ["interc1l", "e2l"],
+          ["interc1l", "e4l"],
+          ["interc1l", "e2r"],
+          ["interc1l", "e4r"],
+          ["interc1l", "e2l"],
+          ["interc1l", "e4l"],
+          ["interc1l", "e2r"],
+          ["interc1l", "e4r"],
+          ["interc1r", "turbo"],
+          ["interc1l", "turbo"],
+          ["interc1l", "airb1"],
+          ["interc1r", "airb1"],
+          {"deformGroup":""}
+
+          //airbox
+          {"beamSpring":101000,"beamDamp":300},
+          {"beamDeform":3000,"beamStrength":25000},
+          {"deformGroup":"mainEngine_intake", "deformationTriggerRatio":0.01}
+          ["airb1", "e3r"],
+          ["airb1", "e3l"],
+          ["airb1", "e4r"],
+          ["airb1", "e4l"],
+          ["airb1", "e2l"],
+          ["airb1", "e2r"],
+          ["airb2", "e3r"],
+          ["airb2", "e3l"],
+          ["airb2", "e4r"],
+          ["airb2", "e4l"],
+          ["airb2", "e2l"],
+          ["airb2", "e2r"],
+          ["airb2", "airb1"],
+          {"deformGroup":""}
+
+          //attach to body
+          {"beamDeform":2000,"beamStrength":15000},
+          ["airb2", "f13rr"],
+          ["airb2", "f15r"],
+          ["airb2", "f15"],
+          ["airb2", "f11rr"],
+          ["airb2", "f15rr"],
+
+          ["airb1", "f12ll"],
+          ["airb1", "f15ll"],
+          ["airb1", "f13ll"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+    ],
+},
+"etk_tunable_engine_i6_forced_induction_medium_turbocharger": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Medium Turbocharger",
+        "value":600,
+    },
+    "slotType" : "etk_tunable_engine_i6_forced_induction",
+    "turbocharger": {
+        "bovSoundFileName":"event:>Vehicle>Forced_Induction>Turbo_03>turbo_bov",
+        "hissLoopEvent":"event:>Vehicle>Forced_Induction>Turbo_04>turbo_hiss",
+        "whineLoopEvent":"event:>Vehicle>Forced_Induction>Turbo_03>turbo_spin",
+        "turboSizeCoef": 0.65,
+        "bovSoundVolumeCoef":0.55,
+        "hissVolumePerPSI": 0.05,
+        "whineVolumePer10kRPM": 0.01,
+        "whinePitchPer10kRPM": 0.035,
+        "wastegateStart":10,
+        "maxExhaustPower": 6000,
+        "backPressureCoef": 0.000007,
+        "pressureRatePSI": 25,
+        "frictionCoef": 10.0,
+        "inertia":0.80,
+        "damageThresholdTemperature": 800,
+        "pressurePSI":[
+            //turbineRPM, pressure(PSI)
+            [0,         -3.5],
+            [30000,     -1],
+            [60000,     7],
+            [90000,     15],
+            [150000,    18],
+            [200000,    20],
+            [250000,    27],
+        ],
+        "engineDef":[
+            //engineRPM, efficiency, exhaustFactor
+            [0,     0.0,    0.25],
+            [650,   0.6,   0.25],
+            [1000,   0.65,   0.45],
+            [1400,  1.0,   0.7],
+            [2000,  0.86,    1.0],
+            [2200,  0.77,    1.0],
+            [2500,  0.69,    1.0],
+            [3000,  0.67,    1.0],
+            [4000,  0.70,    1.0],
+            [4500,  0.82,    1.0],
+            [5000,  0.83,    1.0],
+            [6000,  0.55,    1.0],
+            [7000,  0.3,    1.0],
+            [8000,  0.0,    1.0],
+        ],
+        "ALSTime" : 1,
+		
+		"ALS" : true,
+		"ALSExhaustPower" : 180000,
+		"ALSPressure" : 0,
+		"ALSInstantLoadDrop" : 0.7,
+		
+    },
+    "mainEngine": {
+        //turbocharger name`
+        "turbochargerLuaFileName" = "powertrain/ALSturbocharger",
+        "turbocharger":"turbocharger",
+        "$*instantAfterFireCoef": 1.8,
+        "$*sustainedAfterFireCoef": 1.25,
+
+        //damage deformGroups
+        "deformGroups_turbo":["mainEngine_turbo","mainEngine_intercooler","mainEngine_piping"]
+    },
+    "soundConfig": {
+        "$+intakeMuffling":-0.25,
+        "$+maxLoadMix": 0.2,
+        "$+minLoadMix": 0.00,
+        "$+mainGain":1.5,
+        "$+offLoadGain": 0.00,
+        "$+eqHighGain": 0.00,
+        "$+eqLowGain": 2.00,
+        "$+eqFundamentalGain": 4.00,
+    },
+    "soundConfigExhaust": {
+        "$+maxLoadMix": 0.2,
+        "$+minLoadMix": 0.00,
+        "$+mainGain": 1.5,
+        "$+offLoadGain": 0.00,
+        "$+eqHighGain": 0.00,
+        "$+eqLowGain": 0.25,
+        "$+eqFundamentalGain": 4,
+    },
+    "flexbodies": [
+        ["mesh", "[group]:", "nonFlexMaterials"],
+        ["etk_header_i6_turbo", ["etk_engine", "etk_header"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        ["etk_intake_i6_turbo", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        {"deformGroup":"mainEngine_piping", "deformMaterialBase":"etk800", "deformMaterialDamaged":"invis"},
+        ["etk_icpipe_t_i6", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        ["etk_icpipe_i_i6", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        {"deformGroup":""},
+        ["etk_intercooler", ["etk_intercooler", "etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+    ],
+    "nodes": [
+         ["id", "posX", "posY", "posZ"],
+         {"selfCollision":false},
+         {"collision":true},
+         {"frictionCoef":0.5},
+         {"nodeMaterial":"|NM_METAL"},
+
+         //turbo
+         {"nodeWeight":3.0},
+         {"group":"etk_turbo"},
+         ["turbo", -0.2, -1.3, 0.52],
+
+         //exhaust manifold
+         {"group":"etk_header"},
+         ["exm1r", -0.2, -0.9, 0.27],
+
+         //intercooler
+         {"nodeWeight":1.5},
+         {"group":"etk_intercooler"},
+         ["interc1r", -0.3, -2.1, 0.32],
+         ["interc1l", 0.3, -2.1, 0.32],
+
+         //airbox
+         {"nodeWeight":1.0},
+         {"group":"etk_airbox"},
+         {"nodeMaterial":"|NM_PLASTIC"},
+         ["airb1", 0.35, -1.75, 0.8],
+         ["airb2", -0.35, -1.9, 0.76],
+         {"engineGroup":""},
+         {"group":""},
+    ],
+    "beams": [
+          ["id1:", "id2:"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+
+          //turbo
+          {"beamSpring":2750550,"beamDamp":125},
+          {"beamDeform":30000,"beamStrength":"FLT_MAX"},
+          {"deformLimitExpansion":""},
+          {"deformGroup":"mainEngine_turbo", "deformationTriggerRatio":0.001}
+          ["turbo", "e1r"],
+          ["turbo", "e1l"],
+          ["turbo", "e2r"],
+          ["turbo", "e2l"],
+          ["turbo", "e3r"],
+          ["turbo", "e3l"],
+          ["turbo", "e4l"],
+          ["turbo", "e4r", {"isExhaust":"mainEngine"}],
+
+          //exhaust manifold
+          {"beamSpring":2750550,"beamDamp":125},
+          {"beamDeform":30000,"beamStrength":"FLT_MAX"},
+          ["exm1r", "e1r"],
+          ["exm1r", "e1l"],
+          ["exm1r", "e2r"],
+          ["exm1r", "e2l"],
+          ["exm1r", "e3r"],
+          ["exm1r", "e3l"],
+          ["exm1r", "e4r"],
+          ["exm1r", "e4l"],
+          ["exm1r", "turbo", {"isExhaust":"mainEngine"}],
+
+          //intercooler
+          {"beamSpring":1001000,"beamDamp":100},
+          {"beamDeform":5000,"beamStrength":"FLT_MAX"},
+          {"deformGroup":"mainEngine_intercooler", "deformationTriggerRatio":0.1}
+          {"deformLimitExpansion":1.5},
+          ["interc1r", "interc1l"],
+          ["interc1l", "f18l"],
+          ["interc1l", "f11ll"],
+          ["interc1l", "f13ll"],
+          ["interc1l", "f18"],
+          ["interc1l", "f15"],
+          ["interc1r", "f11rr"],
+          ["interc1r", "f18r"],
+          ["interc1r", "f18"],
+          ["interc1r", "f13rr"],
+          ["interc1r", "f15"],
+          ["interc1r", "f10rr"],
+          ["interc1l", "f10ll"],
+          {"deformLimitExpansion":""},
+
+          //intercooler piping
+          {"beamSpring":501000,"beamDamp":400},
+          {"beamDeform":5000,"beamStrength":15000},
+          {"deformGroup":"mainEngine_piping", "deformationTriggerRatio":0.01}
+          ["interc1l", "e2l"],
+          ["interc1l", "e4l"],
+          ["interc1l", "e2r"],
+          ["interc1l", "e4r"],
+          ["interc1l", "e2l"],
+          ["interc1l", "e4l"],
+          ["interc1l", "e2r"],
+          ["interc1l", "e4r"],
+          ["interc1r", "turbo"],
+          ["interc1l", "turbo"],
+          ["interc1l", "airb1"],
+          ["interc1r", "airb1"],
+          {"deformGroup":""}
+
+          //airbox
+          {"beamSpring":101000,"beamDamp":300},
+          {"beamDeform":3000,"beamStrength":25000},
+          {"deformGroup":"mainEngine_intake", "deformationTriggerRatio":0.01}
+          ["airb1", "e3r"],
+          ["airb1", "e3l"],
+          ["airb1", "e4r"],
+          ["airb1", "e4l"],
+          ["airb1", "e2l"],
+          ["airb1", "e2r"],
+          ["airb2", "e3r"],
+          ["airb2", "e3l"],
+          ["airb2", "e4r"],
+          ["airb2", "e4l"],
+          ["airb2", "e2l"],
+          ["airb2", "e2r"],
+          ["airb2", "airb1"],
+          {"deformGroup":""}
+
+          //attach to body
+          {"beamDeform":2000,"beamStrength":15000},
+          ["airb2", "f13rr"],
+          ["airb2", "f15r"],
+          ["airb2", "f15"],
+          ["airb2", "f11rr"],
+          ["airb2", "f15rr"],
+
+          ["airb1", "f12ll"],
+          ["airb1", "f15ll"],
+          ["airb1", "f13ll"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+    ],
+},
+"etk_tunable_engine_i6_forced_induction_big_turbocharger": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Big Turbocharger",
+        "value":1200,
+    },
+    "slotType" : "etk_tunable_engine_i6_forced_induction",
+    "turbocharger": {
+        "bovSoundFileName":"event:>Vehicle>Forced_Induction>Turbo_03>turbo_bov",
+        "hissLoopEvent":"event:>Vehicle>Forced_Induction>Turbo_04>turbo_hiss",
+        "whineLoopEvent":"event:>Vehicle>Forced_Induction>Turbo_03>turbo_spin",
+        "turboSizeCoef": 0.65,
+        "bovSoundVolumeCoef":0.55,
+        "hissVolumePerPSI": 0.05,
+        "whineVolumePer10kRPM": 0.01,
+        "whinePitchPer10kRPM": 0.035,
+        "wastegateStart":10,
+        "maxExhaustPower": 6000,
+        "backPressureCoef": 0.000007,
+        "pressureRatePSI": 25,
+        "frictionCoef": 12.0,
+        "inertia":1.20,
+        "damageThresholdTemperature": 800,
+        "pressurePSI":[
+            //turbineRPM, pressure(PSI)
+            [0,         -3.5],
+            [30000,     -1],
+            [60000,     7],
+            [75000,     14],
+            [80000,     20],
+            [90000,     32],
+        ],
+        "engineDef":[
+            //engineRPM, efficiency, exhaustFactor
+            [0,     0.0,     0.25],
+            [650,   0.22,     0.25],
+            [1000,  0.25,    0.25],
+            [1400,  0.30,    0.31],
+            [2000,  0.36,    0.54],
+            [2200,  0.51,    0.65],
+            [2500,  0.64,    0.76],
+            [3000,  0.81,    0.85],
+            [4000,  0.92,    1.0],
+            [4500,  0.99,    1.0],
+            [5000,  1.0,     1.0],
+            [6000,  0.96,    1.0],
+            [7000,  0.94,     1.0],
+            [8000,  0.89,     1.0],
+            [9000,  0.89,     1.0],
+            [1000,  0.82,     1.0],
+        ],
+        "ALSTime" : 1,
+		
+		"ALS" : true,
+		"ALSExhaustPower" : 180000,
+		"ALSPressure" : 0,
+		"ALSInstantLoadDrop" : 0.7,
+		
+    },
+    "mainEngine": {
+        //turbocharger name`
+        "turbochargerLuaFileName" = "powertrain/ALSturbocharger",
+        "turbocharger":"turbocharger",
+        "$*instantAfterFireCoef": 1.8,
+        "$*sustainedAfterFireCoef": 1.25,
+
+        //damage deformGroups
+        "deformGroups_turbo":["mainEngine_turbo","mainEngine_intercooler","mainEngine_piping"]
+    },
+    "soundConfig": {
+        "$+intakeMuffling":-0.25,
+        "$+maxLoadMix": 0.2,
+        "$+minLoadMix": 0.00,
+        "$+mainGain":1.5,
+        "$+offLoadGain": 0.00,
+        "$+eqHighGain": 0.00,
+        "$+eqLowGain": 2.00,
+        "$+eqFundamentalGain": 4.00,
+    },
+    "soundConfigExhaust": {
+        "$+maxLoadMix": 0.2,
+        "$+minLoadMix": 0.00,
+        "$+mainGain": 1.5,
+        "$+offLoadGain": 0.00,
+        "$+eqHighGain": 0.00,
+        "$+eqLowGain": 0.25,
+        "$+eqFundamentalGain": 4,
+    },
+    "flexbodies": [
+        ["mesh", "[group]:", "nonFlexMaterials"],
+        ["etk_header_i6_turbo", ["etk_engine", "etk_header"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        ["etk_intake_i6_turbo", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        {"deformGroup":"mainEngine_piping", "deformMaterialBase":"etk800", "deformMaterialDamaged":"invis"},
+        ["etk_icpipe_t_i6", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        ["etk_icpipe_i_i6", ["etk_engine","etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        {"deformGroup":""},
+        ["etk_intercooler", ["etk_intercooler", "etk_radiator"],[]{"pos":{"x":0,"y":0,"z":0}}],
+    ],
+    "nodes": [
+         ["id", "posX", "posY", "posZ"],
+         {"selfCollision":false},
+         {"collision":true},
+         {"frictionCoef":0.5},
+         {"nodeMaterial":"|NM_METAL"},
+
+         //turbo
+         {"nodeWeight":3.0},
+         {"group":"etk_turbo"},
+         ["turbo", -0.2, -1.3, 0.52],
+
+         //exhaust manifold
+         {"group":"etk_header"},
+         ["exm1r", -0.2, -0.9, 0.27],
+
+         //intercooler
+         {"nodeWeight":1.5},
+         {"group":"etk_intercooler"},
+         ["interc1r", -0.3, -2.1, 0.32],
+         ["interc1l", 0.3, -2.1, 0.32],
+
+         //airbox
+         {"nodeWeight":1.0},
+         {"group":"etk_airbox"},
+         {"nodeMaterial":"|NM_PLASTIC"},
+         ["airb1", 0.35, -1.75, 0.8],
+         ["airb2", -0.35, -1.9, 0.76],
+         {"engineGroup":""},
+         {"group":""},
+    ],
+    "beams": [
+          ["id1:", "id2:"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+
+          //turbo
+          {"beamSpring":2750550,"beamDamp":125},
+          {"beamDeform":30000,"beamStrength":"FLT_MAX"},
+          {"deformLimitExpansion":""},
+          {"deformGroup":"mainEngine_turbo", "deformationTriggerRatio":0.001}
+          ["turbo", "e1r"],
+          ["turbo", "e1l"],
+          ["turbo", "e2r"],
+          ["turbo", "e2l"],
+          ["turbo", "e3r"],
+          ["turbo", "e3l"],
+          ["turbo", "e4l"],
+          ["turbo", "e4r", {"isExhaust":"mainEngine"}],
+
+          //exhaust manifold
+          {"beamSpring":2750550,"beamDamp":125},
+          {"beamDeform":30000,"beamStrength":"FLT_MAX"},
+          ["exm1r", "e1r"],
+          ["exm1r", "e1l"],
+          ["exm1r", "e2r"],
+          ["exm1r", "e2l"],
+          ["exm1r", "e3r"],
+          ["exm1r", "e3l"],
+          ["exm1r", "e4r"],
+          ["exm1r", "e4l"],
+          ["exm1r", "turbo", {"isExhaust":"mainEngine"}],
+
+          //intercooler
+          {"beamSpring":1001000,"beamDamp":100},
+          {"beamDeform":5000,"beamStrength":"FLT_MAX"},
+          {"deformGroup":"mainEngine_intercooler", "deformationTriggerRatio":0.1}
+          {"deformLimitExpansion":1.5},
+          ["interc1r", "interc1l"],
+          ["interc1l", "f18l"],
+          ["interc1l", "f11ll"],
+          ["interc1l", "f13ll"],
+          ["interc1l", "f18"],
+          ["interc1l", "f15"],
+          ["interc1r", "f11rr"],
+          ["interc1r", "f18r"],
+          ["interc1r", "f18"],
+          ["interc1r", "f13rr"],
+          ["interc1r", "f15"],
+          ["interc1r", "f10rr"],
+          ["interc1l", "f10ll"],
+          {"deformLimitExpansion":""},
+
+          //intercooler piping
+          {"beamSpring":501000,"beamDamp":400},
+          {"beamDeform":5000,"beamStrength":15000},
+          {"deformGroup":"mainEngine_piping", "deformationTriggerRatio":0.01}
+          ["interc1l", "e2l"],
+          ["interc1l", "e4l"],
+          ["interc1l", "e2r"],
+          ["interc1l", "e4r"],
+          ["interc1l", "e2l"],
+          ["interc1l", "e4l"],
+          ["interc1l", "e2r"],
+          ["interc1l", "e4r"],
+          ["interc1r", "turbo"],
+          ["interc1l", "turbo"],
+          ["interc1l", "airb1"],
+          ["interc1r", "airb1"],
+          {"deformGroup":""}
+
+          //airbox
+          {"beamSpring":101000,"beamDamp":300},
+          {"beamDeform":3000,"beamStrength":25000},
+          {"deformGroup":"mainEngine_intake", "deformationTriggerRatio":0.01}
+          ["airb1", "e3r"],
+          ["airb1", "e3l"],
+          ["airb1", "e4r"],
+          ["airb1", "e4l"],
+          ["airb1", "e2l"],
+          ["airb1", "e2r"],
+          ["airb2", "e3r"],
+          ["airb2", "e3l"],
+          ["airb2", "e4r"],
+          ["airb2", "e4l"],
+          ["airb2", "e2l"],
+          ["airb2", "e2r"],
+          ["airb2", "airb1"],
+          {"deformGroup":""}
+
+          //attach to body
+          {"beamDeform":2000,"beamStrength":15000},
+          ["airb2", "f13rr"],
+          ["airb2", "f15r"],
+          ["airb2", "f15"],
+          ["airb2", "f11rr"],
+          ["airb2", "f15rr"],
+
+          ["airb1", "f12ll"],
+          ["airb1", "f15ll"],
+          ["airb1", "f13ll"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+    ],
+},
+"etk_tunable_engine_i6_intake_system" : {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Tunable Intake System",
+        "value":0,
+    },
+    "slotType" : "etk_tunable_engine_i6_intake_system",
+    "slots": [
+        ["type", "default", "description"],
+        ["etk_tunable_engine_runers_i6","etk_fixed_runners3x30", "Intake", {"coreSlot":true}],
+        ["tunable_engine_drive_by_wire_throttle_body","drive_by_wire_throttle_body_40mm", "Throttle Body", {"coreSlot":true}],
+        ["etk_tunable_engine_i6_forced_induction","etk_tunable_engine_i6_forced_induction_small_turbocharger", "Forced Induction"],
+    ],
+},
+
+"etk_tunable_engine_i6_fuel_system": {
+        "information":{
+        "authors":"BeamNG",
+        "name":"Tunable Fuel System",
+        "value":0,
+    },
+    "slotType" : "etk_tunable_engine_i6_fuel_system",
+    "slots": [
+        ["type", "default", "description"],
+        ["tunable_engine_fuel_pump","fuel_pump_200l_h", "Fuel Pump", {"coreSlot":true}],
+        ["tunable_engine_fuel_pressure_regulator", "fuel_pressure_regulator_3bar", "Fuel Pressure Regulator", {"coreSlot":true}],
+        ["port_injectors", "port_injectors_236cc_min", "Port Injectors", {"coreSlot":true}],
+    ],
+}
+
+"etk_tunable_engine_i6.0": {
     "information":{
         "authors":"BeamNG",
         "name":"Tunable 3.0L I6 Engine",
@@ -36,65 +815,69 @@
         ["type", "default", "description"],
         ["etk_enginemounts","etk_enginemounts", "Engine Mounts", {"coreSlot":true}],
         ["etk_oilpan_i6","etk_oilpan_i6", "Oil Pan", {"coreSlot":true}],
-        ["etk_intake_i6","etk_intake_i6", "Intake", {"coreSlot":true}],
-        ["etk_exhaust_i6_petrol","etk_exhaust_i6_petrol", "Exhaust"],
-        ["etk_engine_i6_ecu","etk_engine_i6_ecu", "Engine Management", {"coreSlot":true}],
-        ["n2o_system","", "Nitrous Oxide System"],
-        ["etk_engine_i6_internals","etk_engine_i6_internals", "Engine Long Block", {"coreSlot":true}],
+        ["etk_tunable_engine_i6_intake_system","etk_tunable_engine_i6_intake_system", "Intake System", {"coreSlot":true}],
+        ["etk_tunable_engine_i6_fuel_system","etk_tunable_engine_i6_fuel_system", "Fuel System", {"coreSlot":true}],
+        ["etk_exhaust_i6_3.0_petrol","etk_exhaust_i6_3.0_petrol", "Exhaust"],
+        ["etk_engine_i6_3.0_petrol_ecu","etk_engine_i6_3.0_petrol_ecu_na_270", "Engine Management", {"coreSlot":true}],
+        //["n2o_system","", "Nitrous Oxide System"],
+        //["etk_engine_i6_3.0_petrol_internals","etk_engine_i6_3.0_petrol_internals", "Engine Long Block", {"coreSlot":true}],
         ["etk_transmission","etk_transmission_6M", "Transmission"],
     ],
     "powertrain": [
         ["type", "name", "inputName", "inputIndex"],
-        ["tunableCombustionEngine", "mainEngine", "dummy", 0],
+        ["tunableCombustionEnginev2", "mainEngine", "dummy", 0],
+        //["tunableCombustionEngine", "mainEngine", "dummy", 0],
     ],
     "mainEngine": {
-
         "compression_ratio":9.5,
         "stroke_cm":9.46,
         "bore_cm":8.2,
         "num_cylinders":6,
-        "injector_cc_min": 236,
-        "throttle_body_diameter_mm":50,
-        "idle_throttle":0.065,
+        "idle_throttle":0.15,
         "volumetric_efficiency":[
             ["rpm", "ve"],
-            [0,	0.00],
-            [1,	0.25],
-            [500,	0.50],
-            [1000,	0.63],
-            [2000,	0.74],
-            [3000,	0.82],
-            [4000,	0.86],
-            [5000,	0.83],
-            [5900,	0.78],
-            [6000,	0.77],
-            [6500,	0.68],
-            [7000,	0.53],
-            [7500,	0.38],
+            //[0,	0.00],
+            //[1,	0.25],
+            //[500,	0.50],
+            //[1000,	0.63],
+            //[1250,  0.66],
+            //[1500,  0.69],
+            //[1750,	0.72],
+            //[2000,	0.74],
+            //[3000,	0.82],
+            //[4000,	0.86],
+            //[5000,	0.83],
+            //[5900,	0.78],
+            //[6000,	0.77],
+            //[6500,	0.68],
+            //[7000,	0.53],
+            //[7500,	0.38],
+            [0, 0],
+            [350, 0.401388888888889],
+            [700, 0.554861111111111],
+            [1000, 0.644583333333333],
+            [2000, 0.779166666666667],
+            [2500, 0.831111111111111],
+            [3000, 0.845277777777778],
+            [4000, 0.85],
+            [5000, 0.835833333333333],
+            [6000, 0.833472222222222],
+            [6500, 0.826388888888889],
+            [7000, 0.731944444444445],
+            [7500, 0.6375],
+            [8000, 0.53125],
+            [9000, 0.306944444444444],         
         ],
         // Just to keep the powertrain happy
         "torque":[
             ["rpm", "torque"],
             [0, 0],
-            //[350, 160],
-            //[700, 225],
-            //[1000, 263],
-            //[2000, 319.5],
-            //[2500, 347],
-            //[3000, 353],
-            //[4000, 354],
-            //[4500, 339],
-            //[5000, 332],
-            //[6000, 329],
-            //[7000, 308],
-            //[7500, 264],
-            [7500, 0],
+            [9000, 130],
         ],
 
         "idleRPM":650,
         //max capable
-        "revLimiterType": "soft",
-        "maxRPM":7200,
+        "maxRPM":9000,
         "inertia":0.14,
         "friction":15,
         "dynamicFriction":0.0239,
@@ -102,28 +885,28 @@
         "burnEfficiency":[
             [0, 0.14],
             [0.05, 0.33],
-            [0.4, 0.45],
+            [0.4, 0.51],
             [0.7, 0.44],
-            [1, 0.40],
+            [1, 0.32],
         ],
         //fuel system
         "energyStorage": "mainTank",
         "requiredEnergyType":"gasoline",
 
         //exhaust
-        "instantAfterFireSound": "event:>Vehicle>Afterfire>i6_01>single",
-        "sustainedAfterFireSound": "event:>Vehicle>Afterfire>i6_01>multi",
-        "shiftAfterFireSound": "event:>Vehicle>Afterfire>i6_01>shift",
+        "instantAfterFireSound": "event:>Vehicle>Afterfire>i5_01>single",
+        "sustainedAfterFireSound": "event:>Vehicle>Afterfire>i5_01>multi",
+        "shiftAfterFireSound": "event:>Vehicle>Afterfire>i5_01>shift",
         "particulates":0.015,
         "afterFireAudibleThresholdInstant": 500000,
-        "instantAfterFireCoef": 0.5,
-        "instantAfterFireVolumeCoef": 0.8,
+        "instantAfterFireCoef": 0.75,
+        "instantAfterFireVolumeCoef": 0.9,
         "afterFireAudibleThresholdShift": 150000,
-        "shiftAfterFireVolumeCoef": 0.7,
+        "shiftAfterFireVolumeCoef": 0.9,
         "afterFireAudibleThresholdSustained": 40000,
-        "sustainedAfterFireCoef": 1.0,
-        "sustainedAfterFireTime": 0.6,
-        "sustainedAfterFireVolumeCoef": 0.2,
+        "sustainedAfterFireCoef": 0.9,
+        "sustainedAfterFireTime": 0.8,
+        "sustainedAfterFireVolumeCoef": 0.7,
 
         //cooling and oil system
         "thermalsEnabled":true,
@@ -137,7 +920,7 @@
         "headGasketDamageThreshold":1500000,
         "pistonRingDamageThreshold":1500000,
         "connectingRodDamageThreshold":2000000,
-        "maxTorqueRating": 630,
+        "maxTorqueRating": 6000,
         "maxOverTorqueDamage": 300,
 
         //node beam interface
@@ -154,23 +937,23 @@
         "starterSampleExhaust":"event:>Engine>Starter>i6_2007_exh",
         "shutOffSampleEngine":"event:>Engine>Shutoff>i6_2007_eng",
         "shutOffSampleExhaust":"event:>Engine>Shutoff>i6_2007_exh",
-        "starterVolume":0.55,
-        "starterVolumeExhaust":0.45,
-        "shutOffVolumeEngine":0.4,
-        "shutOffVolumeExhaust":0.4,
+        "starterVolume":0.76,
+        "starterVolumeExhaust":0.76,
+        "shutOffVolumeEngine":0.76,
+        "shutOffVolumeExhaust":0.76,
         "idleRPMStartRate":0.7,
         "idleRPMStartCoef":1.8,
 
         //engine deform groups
         "deformGroups":["mainEngine", "mainEngine_intake", "mainEngine_accessories"]
     },
-        "soundConfig": {
+    "soundConfig": {
         "sampleName": "I6_2_engine",
         "intakeMuffling": 1,
 
         "mainGain": -7,
         "onLoadGain":1,
-        "offLoadGain":0.63,
+        "offLoadGain":0.53,
 
         "maxLoadMix": 0.7,
         "minLoadMix": 0,
@@ -195,14 +978,14 @@
     "soundConfigExhaust": {
         "sampleName": "I6_2_exhaust",
 
-        "mainGain": 0,
+        "mainGain": -3,
         "onLoadGain":1,
-        "offLoadGain":0.25,
+        "offLoadGain":0.5,
 
         "maxLoadMix": 0.7,
         "minLoadMix": 0,
 
-        "lowShelfGain":-4,
+        "lowShelfGain":-8,
         "lowShelfFreq":150,
 
         "highShelfGain":-14,
@@ -229,6 +1012,8 @@
     },
     "flexbodies": [
         ["mesh", "[group]:", "nonFlexMaterials"],
+        ["etk800_engbaycrap", ["etk800_body"]],
+        ["etkc_engbaycrap", ["etkc_body"],[]{"pos":{"x":0,"y":-0.11,"z":0.03}}],
         ["etk_engine_i6", ["etk_engine","etk_transmission"],[]{"pos":{"x":0,"y":0,"z":0}}],
         {"deformGroup":"radtube_break", "deformMaterialBase":"etk800", "deformMaterialDamaged":"invis"},
         ["etk_radtube_i6", ["etk_radiator","etk_engine"],[]{"pos":{"x":0,"y":0,"z":0}}],
@@ -242,7 +1027,7 @@
          {"nodeMaterial":"|NM_METAL"},
          {"frictionCoef":0.5},
          {"group":"etk_engine"},
-         {"nodeWeight":23},
+         {"nodeWeight":20},
          {"engineGroup":"engine_block"},
          {"chemEnergy":2000,"burnRate":0.39,"flashPoint":800,"specHeat": 0.1,"selfIgnitionCoef":false,"smokePoint":650,"baseTemp":"thermals","conductionRadius":0.13},
          ["e1r", -0.05, -0.97, 0.26],
@@ -340,5 +1125,5 @@
           ["em1l", "e2r"],
           {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
     ],
-},
+}
 }

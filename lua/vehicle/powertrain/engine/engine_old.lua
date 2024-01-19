@@ -3,13 +3,15 @@ local intake = require"lua.vehicle.powertrain.engine.intake"
 
 local M = {}
 
-local timing = {
-  base_adv_deg = 0, -- calc
-
-  quench_adv_deg = 22, -- 33 open chamber / 28 2 valve closed chamber w optimized quench / 22 3-4 valve w shirl and tumble
-  fuel_adv_deg = 0, -- -2 87oct / -1 91-92 oct / 0 94+oct / 2 E85
-  compression_ratio_adv_deg = 1, -- 2 cr < 9.0 / 1 9.1 < cr < 10.0 / 0 10.1 < cr < 11.5 / -2 cr > 11.6
-  per_kpa_adv_deg = -0.3
+local initialAfterfire = {
+  sustainedAfterFireCoef = 0,
+  sustainedAfterFireFuelDelay = 0,
+  sustainedAfterFireTimer = 0,
+  instantAfterFireCoef = 0,
+  instantAfterFireFuelDelay = 0,
+  instantAfterFireTimer = 0,
+  slowIgnitionErrorChance = 0,
+  slowIgnitionErrorInterval = 0
 }
 
 -- conversions
@@ -48,7 +50,6 @@ local state = {
   RPM = 0,--[[1/s]]
   AV = 0,--[[rad/s]]
   lambda = 0,
-  torqueCurveCreation = false
 }
 
 -- Same as state but updated at slower (More realistic) intervals
@@ -85,7 +86,6 @@ local misfire_cooldown = 0
 local misfire_timer = 0
 
 local prev_data = {}
-
 
 local thisEngine = nil
 local function init(localEngine, jbeamData)
@@ -188,8 +188,7 @@ local function updateGFX(device, dt)
 end
 
 -- local function updateGFX(dt)
-local function simulateEngine(dt, valuesOverwrite, tcc)
-  state.torqueCurveCreation = tcc
+local function simulateEngine(dt, valuesOverwrite, torqueCurveCreation)
   valuesOverwrite = valuesOverwrite == nil and {} or valuesOverwrite
   thisEngine.instantEngineLoad = valuesOverwrite.instantEngineLoad ~= nil and valuesOverwrite.instantEngineLoad or
       thisEngine.instantEngineLoad
@@ -310,22 +309,10 @@ local function simulateEngine(dt, valuesOverwrite, tcc)
     --local initial_propagation_phase = --something dependent on lambda, cr, map and rpm
     --local burn_phase = --something dependent on lambda, cr, rpm, map 
 
-    --old
+
     fuel_burn_duration_deg = ((20 * (engineMeasurements.stroke_cm / 8.2) / ((((state.MAP + 103) / 100) ^ 0.4))) *
         ((state.RPM + 1800) / 3600) ^ 0.8) / fuel_burn_speed
 
-    local total_adv = (engineMeasurements.bore_cm * 2.45 / 4.000)
-    total_adv = total_adv * 6.0; 
-    total_adv = total_adv + timing.quench_adv_deg + timing.fuel_adv_deg + timing.compression_ratio_adv_deg;
-    timing.base_adv_deg = total_adv
-
-    fuel_burn_duration_deg = 
-      (total_adv --[[math.max(timing.per_kpa_adv_deg * (state.MAP - 100), total_adv * 0.5)]])
-      * math.max(((100 - (100 - state.MAP ) * (-0.1)) / 100), 0.5)
-      * ((7200 - (7200 - state.RPM ) * (0.3)) / 7200)
-    -- if state.RPM > 2999 then
-    --   fuel_burn_duration_deg = fuel_burn_duration_deg * 
-    -- end
     -- if debug and tick % 50 == 0 then
     --   print((20 / ((engineMeasurements.volumetric_efficiency ^ 0.2) * (engine.forcedInductionCoef^0.2))))
     -- end
@@ -363,28 +350,11 @@ local function simulateEngine(dt, valuesOverwrite, tcc)
       --print("Cp: " .. test)
     end
     
-    -- if max_pressure_point_dATDC > 0 then
-    --   -- if max_pressure_point_dATDC > 10 then
-    --   --   combustion_pressure = combustion_pressure + (ignition_advance_deg * 2)
-    --   -- else
-    --   --   combustion_pressure = combustion_pressure + (ignition_advance_deg)
-    --   -- end
-
-    --   combustion_pressure = combustion_pressure + max_pressure_point_dATDC * (1 + (2 / (1 + math.exp(-(max_pressure_point_dATDC - 10)))) - (3 / (1 + math.exp(-(max_pressure_point_dATDC - 20)))))
-
-    -- else
-    --   combustion_pressure = combustion_pressure + (ignition_advance_deg * 3)
-    -- end
-
-    -- Simulate effect of combustion timing
-    combustion_pressure = combustion_pressure + max_pressure_point_dATDC * (
-      -2
-      + 3 / (1 + math.exp(-max_pressure_point_dATDC)) -- too soon --> knock and less power
-      + 2 / (1 + math.exp(-(max_pressure_point_dATDC - 10))) -- sooner than optimal: less power
-      - 2 / (1 + math.exp(-(max_pressure_point_dATDC - 30))) -- just right ;)
-      - 1 / (1 + math.exp(-(max_pressure_point_dATDC - 45))) -- too late: less power
-    )
-
+    if ignition_advance_deg > 0 then
+      combustion_pressure = combustion_pressure + (ignition_advance_deg * 2)
+    else
+      combustion_pressure = combustion_pressure + (ignition_advance_deg * 4)
+    end
     if max_pressure_point_dATDC >= 30 and state.RPM > 2 * thisEngine.idleRPM and
         not (max_pressure_point_dATDC == conversions.inf or max_pressure_point_dATDC == -conversions.inf) then
       -- thisEngine.sustainedAfterFireCoef = 100
@@ -470,4 +440,5 @@ M.engineMeasurements = engineMeasurements
 M.ecu = ecu
 M.intake = intake
 M.volumetric_efficiency_curve = volumetric_efficiency_curve
+
 return M

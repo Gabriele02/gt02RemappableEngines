@@ -47,6 +47,7 @@
         }
         .section {
             display: none;
+            overflow-y: scroll;
         }
         .navbar{
             position: absolute;
@@ -95,7 +96,10 @@
             -webkit-appearance: none;
             margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
         }
-
+        div#engine-data {
+            overflow-y: scroll;
+            height: 35vh;
+        }
         input.no-arrows[type=number] {
             -moz-appearance:textfield; /* Firefox */
         }
@@ -103,8 +107,11 @@
     <div class="navbar" id="navbar">
         <div class="section-selection" id="injector-section-selection"><p>Fuel</p></div>
         <div class="section-selection" id="ignition-section-selection"><p>Ignition</p></div>
+        <div class="section-selection" id="boost-section-selection"><p>Boost</p></div>
+        <div class="section-selection" id="PWM-section-selection"><p>PWM</p></div>
         <div class="section-selection" id="options-section-selection"><p>Options</p></div>
         <div class="section-selection" id="realtime-section-selection"><p>Real-Time</p></div>
+        <div class="section-selection" id="experimental-section-selection"><p>Exp.</p></div>
         <p>Load Tune</p>
         <input type="file" id="tune-file" />
         <button id="save-tune">Save</button>
@@ -114,8 +121,100 @@
             <div class="section" id="boost"></div>
             <div class="section" id="injector"></div>
             <div class="section" id="ignition"></div>
+            <div class="section" id="PWM"></div>
             <div class="section" id="options">
                 <h1 style="width: 100%;">Options</h1>
+            </div>
+            <div class="section" id="experimental">
+                <input type="number" name="RpmOverwrite" id="RpmOverwrite" style="width: 6em;color:white;">
+                <label for="RpmOverwrite">RpmOverwrite</label><br>
+    
+                <input type="number" name="MapOverwrite" id="MapOverwrite" style="width: 6em;color:white;">
+                <label for="MapOverwrite">MapOverwrite</label><br>
+    
+                <input type="checkbox" name="TuningCheatOverwrite" id="TuningCheatOverwrite">
+                <label for="TuningCheatOverwrite">TuningCheatOverwrite</label>
+                <br>
+                <h2>
+                    Auto-tuner
+                </h2>
+                <input type="number" name="fromRPM" id="fromRPM" style="width: 6em;color:white;">
+                <label for="fromRPM">From RPM</label><br>
+    
+                <input type="number" name="toRPM" id="toRPM" style="width: 6em;color:white;">
+                <label for="toRPM">To RPM</label><br>
+    
+                <input type="number" name="fromMAP" id="fromMAP" style="width: 6em;color:white;">
+                <label for="fromMAP">From MAP</label><br>
+    
+                <input type="number" name="toMAP" id="toMAP" style="width: 6em;color:white;">
+                <label for="toMAP">To MAP</label><br>
+    
+                <input type="number" name="targetAFR" id="targetAFR" style="width: 6em;color:white;">
+                <label for="targetAFR">Target AFR</label><br>
+    
+                <button id="autotune">Autotune</button>
+                <script type="text/javascript">
+                    function sendData() {
+                        if(!document.querySelector('#TuningCheatOverwrite').checked){return;}
+                        const rpm = document.querySelector('#RpmOverwrite').value;
+                        const map = document.querySelector('#MapOverwrite').value;
+                        fetch(
+                            `http://${window.location.host}/command?RpmOverwrite=${rpm}&MapOverwrite=${map}`,
+                        )
+                    };
+                    document.querySelector('#MapOverwrite').addEventListener("input", sendData);
+                    document.querySelector('#RpmOverwrite').addEventListener("input", sendData);
+                    document.querySelector('#TuningCheatOverwrite').addEventListener("change", function() {
+                        fetch(
+                            `http://${window.location.host}/command?TuningCheatOverwrite=${this.checked ? 'true' : 'false'}`,
+                        )
+                    });
+                    async function autoTune(fromRPM, toRPM, fromMAP, toMAP, targetAFR) {
+                        for (let x = 0; x < tuneValues['injector-table'].xValues.length; ++x) {
+                            const rpm = tuneValues['injector-table'].xValues[x];
+                            if(rpm < fromRPM || rpm > toRPM){
+                                continue;
+                            }
+                            for (let y = 0; y < tuneValues['injector-table'].yValues.length; ++y) {
+                                const map = tuneValues['injector-table'].yValues[y];
+                                if(map < fromMAP || map > toMAP){
+                                    continue;
+                                }
+                                let target_afr = targetAFR;
+                                await fetch(
+                                    `http://${window.location.host}/command?TuningCheatOverwrite=true&RpmOverwrite=${rpm}&MapOverwrite=${map}`
+                                ).then(async () => {
+                                    await fetch(`http://${window.location.host}/engineData.json`)
+                                        .then((response) => {
+                                        return response.json();
+                                        })
+                                        .then((json) => {
+                                            afr = json.afr;
+                                            console.log(afr);
+                                            const val = document.getElementById(`${rpm}-${map}-injector-table`).value * afr / target_afr;
+                                            document.getElementById(`${rpm}-${map}-injector-table`).value = val;
+                                            document.getElementById(`${rpm}-${map}-injector-table`).dispatchEvent(new Event('input', {bubbles:true}));
+                                        });
+                                });
+                            }
+                        }
+    
+                        await fetch(
+                            `http://${window.location.host}/command?TuningCheatOverwrite=false&RpmOverwrite=0&MapOverwrite=0`
+                        )
+                    }
+                    document.getElementById('autotune').addEventListener('click', () => {
+                        autoTune(
+                            Number(document.getElementById('fromRPM').value),
+                            Number(document.getElementById('toRPM').value),
+                            Number(document.getElementById('fromMAP').value),
+                            Number(document.getElementById('toMAP').value),
+                            Number(document.getElementById('targetAFR').value),
+                        );
+                    })
+    
+                </script>
             </div>
         </div>
         <div class="section" id="realtime">
@@ -124,89 +223,6 @@
             <div class="" id="gauges">
                 <canvas id="rpm"></canvas>
             </div>
-        </div>
-        <div class="section" id="experimental">
-            <input type="number" name="RpmOverwrite" id="RpmOverwrite" style="width: 6em;color:white;">
-            <label for="RpmOverwrite">RpmOverwrite</label><br>
-
-            <input type="number" name="MapOverwrite" id="MapOverwrite" style="width: 6em;color:white;">
-            <label for="MapOverwrite">MapOverwrite</label><br>
-
-            <input type="checkbox" name="TuningCheatOverwrite" id="TuningCheatOverwrite">
-            <label for="TuningCheatOverwrite">TuningCheatOverwrite</label>
-            <br>
-            <h2>
-                Auto-tuner
-            </h2>
-            <input type="number" name="fromRPM" id="fromRPM" style="width: 6em;color:white;">
-            <label for="fromRPM">From RPM</label><br>
-
-            <input type="number" name="toRPM" id="toRPM" style="width: 6em;color:white;">
-            <label for="toRPM">To RPM</label><br>
-
-            <input type="number" name="fromMAP" id="fromMAP" style="width: 6em;color:white;">
-            <label for="fromMAP">From MAP</label><br>
-
-            <input type="number" name="toMAP" id="toMAP" style="width: 6em;color:white;">
-            <label for="toMAP">To MAP</label><br>
-
-            <input type="number" name="targetAFR" id="targetAFR" style="width: 6em;color:white;">
-            <label for="targetAFR">Target AFR</label><br>
-
-            <button id="autotune">Autotune</button>
-            <script type="text/javascript">
-                function sendData() {
-                    if(!document.querySelector('#TuningCheatOverwrite').checked){return;}
-                    const rpm = document.querySelector('#RpmOverwrite').value;
-                    const map = document.querySelector('#MapOverwrite').value;
-                    fetch(
-                        `http://${window.location.host}/command?RpmOverwrite=${rpm}&MapOverwrite=${map}`,
-                    )
-                };
-                document.querySelector('#MapOverwrite').addEventListener("input", sendData);
-                document.querySelector('#RpmOverwrite').addEventListener("input", sendData);
-                document.querySelector('#TuningCheatOverwrite').addEventListener("change", function() {
-                    fetch(
-                        `http://${window.location.host}/command?TuningCheatOverwrite=${this.checked ? 'true' : 'false'}`,
-                    )
-                });
-                async function autoTune(fromRPM, toRPM, fromMAP, toMAP, targetAFR) {
-                    for (let rpm = fromRPM; rpm <= toRPM; rpm += 500) {
-                        for (let map = fromMAP; map <= toMAP; map += 10) {
-                        let target_afr = targetAFR;
-                        await fetch(
-                            `http://${window.location.host}/command?TuningCheatOverwrite=true&RpmOverwrite=${rpm}&MapOverwrite=${map}`
-                        ).then(() => {
-                            await fetch(`http://${window.location.host}/engineData.json`)
-                                .then((response) => {
-                                return response.json();
-                                })
-                                .then((json) => {
-                                    afr = json.afr;
-                                    console.log(afr);
-                                    const val = document.getElementById(`${rpm}-${map}-injector-table`).value * afr / target_afr;
-                                    document.getElementById(`${rpm}-${map}-injector-table`).value = val;
-                                    document.getElementById(`${rpm}-${map}-injector-table`).dispatchEvent(new Event('input', {bubbles:true}));
-                                });
-                        });
-                        }
-                    }
-
-                    await fetch(
-                        `http://${window.location.host}/command?TuningCheatOverwrite=false&RpmOverwrite=0&MapOverwrite=0`
-                    )
-                }
-                document.getElementById('autotune').addEventListener('click', () => {
-                    autoTune(
-                        Number(document.getElementById('fromRPM').value),
-                        Number(document.getElementById('toRPM').value),
-                        Number(document.getElementById('fromMAP').value),
-                        Number(document.getElementById('toMAP').value),
-                        Number(document.getElementById('targetAFR').value),
-                    );
-                })
-
-            </script>
         </div>
     </div>
     <a id="downloadAnchorElem" style="display:none"></a>
@@ -251,7 +267,7 @@
         }
 
         let tuneValues = {};
-        const SUPPORTED_TUNE_VERSIONS = [0.21];
+        const SUPPORTED_TUNE_VERSIONS = [0.31];
         const defaults = {
             xValues: [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
             yValues: [100, 93, 86, 79, 72, 65, 58, 51, 44, 37, 30, 23, 16, 9, 2].sort((a, b) => b - a),
@@ -325,7 +341,7 @@
             return tuneValues.options[optionName].value
         }
 
-        const addMap2D = (displayName, unit, sectionName, mapName, xName, xMin, xMax, xStep, cellsMin, cellsMax, cellsRedValue) => {
+        const addMap2D = (displayName, unit, sectionName, mapName, xName, xValues, cellsMin, cellsMax, cellsRedValue) => {
             tuneValues[mapName] = {
                 type: "2D",
                 values: {},
@@ -333,9 +349,7 @@
                 unit,
                 sectionName,
                 xName,
-                xMin,
-                xMax,
-                xStep,
+                xValues,
                 cellsMin,
                 cellsMax,
                 cellsRedValue
@@ -359,7 +373,6 @@
 
         const getMapValue2D = (mapName, col) => {
             const colIndex = Number(col);
-            const rowIndex = Number(row);
 
             if(tuneValues[mapName].values === undefined || tuneValues[mapName].type !== "2D"){
                 return undefined;
@@ -548,9 +561,9 @@
             const headerCell = headerRow.insertCell();
             const header = document.createElement('p');
             header.textContent = yName;
-            header.setAttribute('colspan', 30 + 2);
+            header.setAttribute('colspan', xValues.length + 2);
             headerCell.appendChild(header); 
-            for(let yIndex = 0; yIndex < 15; yIndex++) {
+            for(let yIndex = 0; yIndex < yValues.length; yIndex++) {
                 const y = yValues[yIndex];
                 const newRow = tbody.insertRow();
                 const valueCell = newRow.insertCell();
@@ -570,6 +583,10 @@
                     for (let index = 0; index < tuneValues[mapName].yValues.length; index++) {
                         if(tuneValues[mapName].yValues[index] == oldValue){
                             tuneValues[mapName].yValues[index] = Number(newValue);
+                            for(let m = 0; m < tuneValues[mapName].xValues.length; m++){
+                                let x = tuneValues[mapName].xValues[m];
+                                document.getElementById(`${x}-${oldValue}-${mapName}`).id = `${x}-${newValue}-${mapName}`
+                            }
                         }
                     }
                     console.log(tuneValues);
@@ -577,7 +594,7 @@
                 input.style.color = '#ffffff';
                 valueCell.appendChild(input);
                 
-                for (let xIndex = 0; xIndex < 30; xIndex++) {
+                for (let xIndex = 0; xIndex < xValues.length; xIndex++) {
                     const x = xValues[xIndex];
                     // Insert a cell at the end of the row
                     const newCell = newRow.insertCell();
@@ -590,8 +607,11 @@
                     input.addEventListener('input', (event) => {
                         const val = event.target.value || 0;
                         const color = getCellColor(val, cellsRedValue);
-                        event.target.parentNode.style.backgroundColor = color; 
-                        addMapValue3D(mapName, y, x, val);
+                        event.target.parentNode.style.backgroundColor = color;
+                        const splitId = input.id.split('-');
+                        const xActual = splitId[0];
+                        const yActual = splitId[1];
+                        addMapValue3D(mapName, yActual, xActual, val);
                     });
                     input.min = cellsMin;
                     input.max = cellsMax;
@@ -607,7 +627,7 @@
             footer.textContent = xName;
             footerCell.appendChild(footer);
 
-            for (let xIndex = 0; xIndex < 30; xIndex++) {
+            for (let xIndex = 0; xIndex < xValues.length; xIndex++) {
                 const x = xValues[xIndex];
                 footerCell = footerRow.insertCell();
                 // footer = document.createElement('p');
@@ -629,7 +649,11 @@
                     input.id = `x-${newValue}-${mapName}`;
                     for (let index = 0; index < tuneValues[mapName].xValues.length; index++) {
                         if(tuneValues[mapName].xValues[index] == oldValue){
-                            tuneValues[mapName].xValues[index] == newValue;
+                            tuneValues[mapName].xValues[index] = Number(newValue);
+                            for(let m = 0; m < tuneValues[mapName].yValues.length; m++){
+                                let y = tuneValues[mapName].yValues[m];
+                                document.getElementById(`${oldValue}-${y}-${mapName}`).id = `${newValue}-${y}-${mapName}`
+                            }
                         }
                     }
                     console.log(tuneValues);
@@ -682,6 +706,157 @@
             // section.appendChild(d1);
         }
         
+        const createTable2D = (displayName, unit, sectionName, mapName, xName, xValues, cellsMin, cellsMax, cellsRedValue) => {
+            /********/addMap2D(displayName, unit, sectionName, mapName, xName, xValues, cellsMin, cellsMax, cellsRedValue);
+
+            // Create name
+            const tableNameElement = document.createElement('h1');
+            tableNameElement.textContent = `${displayName} (${unit})`;
+
+            // Create container
+            const div = document.createElement('div');
+            div.id = mapName + '-container';
+            // div.style.position = 'relative';
+            div.appendChild(tableNameElement);
+
+            // Create table
+            const table = document.createElement('table');
+            table.setAttribute('border', 'true');
+            table.style.borderCollapse = 'collapse';
+            table.style.textAlign = 'center';
+            table.id = mapName;
+            table.addEventListener("mousedown", (event) => {
+                tableToMultiselect = table.id;
+            })
+            table.addEventListener("mouseup", (event) => {
+                tableToMultiselect = undefined;
+                if(selectedElements.length >= 1){
+                    showSelectionEditorDialog();
+                }
+            })
+            table.addEventListener("mousemove", (event) => {                
+                if(tableToMultiselect != table.id){return;}
+                const elem = document.elementFromPoint(event.x, event.y);
+                if(elem.nodeName !== 'INPUT' || !elem.id.includes(tableToMultiselect)){return;}
+                if(selectedElements.includes(elem)){return;}
+                selectedElements.push(elem);
+                elem.style.backgroundColor = "aqua";
+                console.log(selectedElements);
+            });
+            div.appendChild(table);
+
+            // Create tbody
+            const tbody = document.createElement('tbody');
+            table.appendChild(tbody)
+            tbody.style.position = 'relative';
+
+            // Fill table
+            const row = tbody.insertRow();
+            const headerCell = row.insertCell();
+            const header = document.createElement('p');
+            header.textContent = unit;
+            header.setAttribute('colspan', xValues.length + 2);
+            headerCell.appendChild(header);
+            for (let xIndex = 0; xIndex < xValues.length; xIndex++) {
+                const x = xValues[xIndex];
+                // Insert a cell at the end of the row
+                const newCell = row.insertCell();
+
+                const input = document.createElement("input");
+                input.setAttribute('type', 'number');
+                input.setAttribute('value', '0');
+                input.setAttribute('step', '0.01');
+                input.id = `${x}-${mapName}`;
+                input.addEventListener('input', (event) => {
+                    const val = event.target.value || 0;
+                    const color = getCellColor(val, cellsRedValue);
+                    event.target.parentNode.style.backgroundColor = color;
+                    const splitId = input.id.split('-');
+                    const xActual = splitId[0];
+                    addMapValue2D(mapName, xActual, val);
+                });
+                input.min = cellsMin;
+                input.max = cellsMax;
+                // Append a text node to the cell
+                newCell.appendChild(input);
+                input.dispatchEvent(new Event('input', {bubbles:true}));
+            }
+
+            const footerRow = tbody.insertRow();
+            let footerCell = footerRow.insertCell();
+            let footer = document.createElement('p');
+            footer.textContent = xName;
+            footerCell.appendChild(footer);
+
+            for (let xIndex = 0; xIndex < xValues.length; xIndex++) {
+                const x = xValues[xIndex];
+                footerCell = footerRow.insertCell();
+                // footer = document.createElement('p');
+                // footer.textContent = x;
+                const input = document.createElement("input");
+                input.setAttribute('type', 'number');
+                input.setAttribute('value', x);
+                input.setAttribute('step', '1');
+                input.className = 'no-arrows';
+                input.id = `x-${x}-${mapName}`;
+                input.addEventListener('change', (event) => {
+                    const oldValue = event.target.id.split('-')[1];
+                    const newValue = event.target.value;
+                    input.id = `x-${newValue}-${mapName}`;
+                    for (let index = 0; index < tuneValues[mapName].xValues.length; index++) {
+                        if(tuneValues[mapName].xValues[index] == oldValue){
+                            tuneValues[mapName].xValues[index] = Number(newValue);
+                        }
+                    }
+                });
+                input.style.color = '#ffffff';
+                footerCell.appendChild(input); 
+            }
+
+            // Show table
+            const section = document.getElementById(sectionName);
+            section.appendChild(div); 
+
+            // const point = document.createElement('div');
+            // point.id = mapName + '-point';
+            // point.style.position = 'absolute';
+            // // point.style.display = 'none';
+            // point.style.width = '5px';
+            // point.style.height = '5px';
+            // point.style.borderRadius = '50%';
+            // point.style.backgroundColor = 'white';
+            // section.appendChild(point);
+            const canvas = document.createElement('canvas');
+            canvas.id = mapName + '-canvas';
+            canvas.style.position = 'absolute';
+            // point.style.display = 'none';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+            // canvas.style.border = "2px solid red";
+            // canvas.style.zIndex = "999";
+            div.appendChild(canvas);
+
+
+            // const d0 = document.createElement('div');
+            // d0.id = mapName + 'd0';
+            // d0.style.position = 'absolute';
+            // d0.style.width = '100%';
+            // d0.style.height = '5px';
+            // d0.style.backgroundColor = 'red';
+            // section.appendChild(d0);
+
+            // const d1 = document.createElement('div');
+            // d1.id = mapName + 'd1';
+            // d1.style.position = 'absolute';
+            // d1.style.width = '100%';
+            // d1.style.height = '5px';
+            // d1.style.backgroundColor = 'blue';
+            // section.appendChild(d1);
+        }
+
         const createGauge = () => {
             // <canvas class="gauge"></canvas>
             // TODO
@@ -708,7 +883,7 @@
                             input.dispatchEvent(new Event('input', {bubbles:true}));
                         }
                     }
-                }else{
+                }else if(map != undefined && map.type === '3D'){
                     document.getElementById(map.sectionName).innerHTML = '';
                     const bkup = tuneValues[mapName].values;
                     createTable3D(map.displayName, map.unit, map.sectionName, mapName, map.xName, map.xValues.sort((a, b) => a - b) || defaults.xValues, map.yName, map.yValues.sort((a, b) => b - a) || defaults.yValues, map.cellsMin, map.cellsMax, map.cellsRedValue);
@@ -729,6 +904,17 @@
                             cell.value = getMapValue3D(mapName, y, x) || 0;
                             cell.dispatchEvent(new Event('input', {bubbles:true}));
                         }
+                    }
+                }else if(map != undefined && map.type === '2D'){
+                    document.getElementById(map.sectionName).innerHTML = '';
+                    const bkup = tuneValues[mapName].values;
+                    createTable2D(map.displayName, map.unit, map.sectionName, mapName, map.xName, map.xValues.sort((a, b) => a - b) || defaults.xValues, map.cellsMin, map.cellsMax, map.cellsRedValue);
+                    tuneValues[mapName].values = bkup;
+                    for (let xIndex = 0; xIndex < map.xValues.length; xIndex++) {
+                        const x = map.xValues[xIndex];
+                        const cell = document.getElementById(`${x}-${mapName}`);
+                        cell.value = getMapValue2D(mapName, x) || 0;
+                        cell.dispatchEvent(new Event('input', {bubbles:true}));
                     }
                 }
             }
@@ -790,8 +976,16 @@
 
             // Create tables
             createOption('RPM limit', 'RPM', 'options', 'RPM-limit', 'number', 1, 0, 20000, 10000);
+            createOption('Drive-by-Wire Idle Throttle Opening', '%', 'options', 'dbw-idle-throttle', 'number', 0.1, 0, 25, 10);
             createOption('Knock correction', '---', 'options', 'knock-correction', 'checkbox');
+            
             // createTable('Boost Table', 'PSI', 'boost', 'boost-table', 'RPM', MIN_RPM, MAX_RPM, RPM_STEP, 'Load', MIN_LOAD, MAX_LOAD, LOAD_STEP, 0, 255, 50);
+            createTable3D(
+                'Boost Table', 'PSI', 'boost', 'boost-table',
+                'RPM', [600, 1200, 1800, 2400, 2800, 3400, 4000, 4700, 5500, 6200, 7200, 8200].sort((a, b) => a - b),
+                'TPS', [100, 90, 75, 60, 45, 20, 10, 0].sort((a, b) => b - a),
+                0, 255, 40
+            );
             createTable3D(
                 'Ignition Advance Table', 'Degº', 'ignition', 'advance-table',
                 'RPM', [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
@@ -804,6 +998,12 @@
                 'MAP', [100, 93, 86, 79, 72, 65, 58, 51, 44, 37, 30, 23, 16, 9, 2].sort((a, b) => b - a),
                 0, 90, 40
             );
+
+            createTable2D(
+                'Variable Length Runners Table', '%', 'PWM', 'vlr-table',
+                'RPM', [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
+                0, 100, 100
+            )
             
             document.getElementById('save-tune').addEventListener('click', () => {downloadTune();})
             document.getElementById('tune-file').addEventListener('change', (event) => {loadTune(event);})
@@ -885,7 +1085,11 @@
                     
                     // rpm : xMax = x : width ==> x = rpm * width / xMax
                     let x = data[map.xName.toLocaleLowerCase()] / map.xMax * canvas.width;
-                    let y = (1 - data[map.yName.toLocaleLowerCase()] / map.yMax) * canvas.height;
+                    let y = 0.5;
+                    if (map.type === '3D') {
+                        y = (1 - data[map.yName.toLocaleLowerCase()] / map.yMax); 
+                    }
+                    y *= canvas.height;
                     
                     // const index = (x + y * canvas.width) * 4;
                     // canvasData.data[index + 0] = 255;

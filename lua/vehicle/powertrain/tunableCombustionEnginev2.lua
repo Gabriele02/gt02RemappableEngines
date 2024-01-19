@@ -1,9 +1,14 @@
 local M = {}
-local simEngine = require"lua.vehicle.powertrain.engine.engine"
+local simEngine = require"lua.vehicle.powertrain.engine-system.engine"
 local engineFunctions = nil
 
 local function init(localEngine, jbeamData)
-  simEngine.init(localEngine, jbeamData)
+  local data = {
+    jbeamData = jbeamData,
+    combustionEngine = localEngine,
+    engine = simEngine,
+  }
+  simEngine.init(data)
 end
 
 -- local function initSecondStage()
@@ -39,13 +44,19 @@ local psToWatt = 735.499
 local hydrolockThreshold = 0.9
 
 local function getTorqueData(device)
-
   -- Warm up the engine
-  print("Warming up engine...")
-  for i = 1, 50, 1 do
-    simEngine.simulateEngine(0.01, {RPM = 250 + i*10, warmup = true, warmupCycleNum = i, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true)
+  -- print("Warming up engine...")
+  --[[simEngine.state.instantEngineLoad = 1
+  simEngine.state.requestedThrottle = 1
+  simEngine.state.torqueCurveCreation = true
+  simEngine.state.RPM = 0
+  while simEngine.state.RPM < 7300 do
+    -- simEngine.simulateEngine(0.01, {RPM = 250 + i*10, warmup = true, warmupCycleNum = i, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true)`
+    simEngine.update(1/2000)
+    simEngine.state.RPM = simEngine.state.RPM + 1
+    print(simEngine.state.RPM .. " " .. simEngine.state.torque .. " " .. simEngine.state.manifold.runners.air_fuel_ratio)
   end
-  -- pippo.pluto.paperino()
+  pippo.pluto.paperino()]]
 
   local curves = {}
   local curveCounter = 1
@@ -61,213 +72,55 @@ local function getTorqueData(device)
 
   local torqueCurve = {}
   local powerCurve = {}
-
-  for k, v in pairs(device.torqueCurve) do
-    if type(k) == "number" and k < maxRPM then
-      simEngine.state.RPM = k
-      simEngine.state.TPS = 1
-      torqueCurve[k + 1] = simEngine.simulateEngine(1/2000, {RPM = k, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true) - device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-          (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-          device.torqueCurve[k + 1] = torqueCurve[k + 1]
-      powerCurve[k + 1] = torqueCurve[k + 1] * k * torqueToPower
-      if torqueCurve[k + 1] > maxTorque then
-        maxTorque = torqueCurve[k + 1]
-        maxTorqueRPM = k + 1
-      end
-      if powerCurve[k + 1] > maxPower then
-        maxPower = powerCurve[k + 1]
-        maxPowerRPM = k + 1
+  print("START " .. device.name)
+  local invPascalToPSI = 0.00014503773773
+  if device.turbocharger.isExisting then
+    turboCoefs = device.turbocharger.getTorqueCoefs(nil, nil, true)
+  end
+  for i = 1, 2 do
+    torqueCurve[i] = {}
+    powerCurve[i] = {}
+    simEngine.state.instantEngineLoad = 1
+    simEngine.state.requestedThrottle = i == 1 and 0.5 or 1
+    simEngine.state.torqueCurveCreation = true
+  
+    for k, v in pairs(device.torqueCurve) do
+      if type(k) == "number" and k < maxRPM then
+        simEngine.state.RPM = k
+        simEngine.state.AV = k * rpmToAV
+        if turboCoefs then
+          simEngine.state.tccTurboBoost = (1 + (turboCoefs[2][k] or 0)) * invPascalToPSI
+        end
+        simEngine.update(1/2000)
+        -- if k > 500 and k < 700 then
+        --   print(k .. " " .. simEngine.state.torque .. " " .. simEngine.state.manifold.runners.air_fuel_ratio)
+        -- end
+        torqueCurve[i][k + 1] = 
+        -- simEngine.simulateEngine(1/2000, {RPM = k, throttle = 1, instantEngineLoad = 1, doNotRandom = true}, true)
+        simEngine.state.torque
+        - device.friction * device.wearFrictionCoef * device.damageFrictionCoef
+        - (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
+        
+        device.torqueCurve[k + 1] = torqueCurve[i][k + 1]
+        powerCurve[i][k + 1] = torqueCurve[i][k + 1] * k * torqueToPower
+        if torqueCurve[i][k + 1] > maxTorque then
+          maxTorque = torqueCurve[i][k + 1]
+          maxTorqueRPM = k + 1
+        end
+        if powerCurve[i][k + 1] > maxPower then
+          maxPower = powerCurve[i][k + 1]
+          maxPowerRPM = k + 1
+        end
       end
     end
+    -- dumpToFile("t.txt", torqueCurve[i])
+    -- print('maxTorque: ' .. maxTorque)
+    simEngine.state.torqueCurveCreation = false
+    print("END")
+    table.insert(curves, curveCounter, { torque = torqueCurve[i], power = powerCurve[i], name = (simEngine.state.requestedThrottle * 100) .. "% Throttle", priority = 10 * i })
+    --curveCounter = curveCounter + 1
   end
-  -- pippo.scopa()
-  table.insert(curves, curveCounter, { torque = torqueCurve, power = powerCurve, name = "NA", priority = 10 })
-  -- dumpToFile("t.txt", torqueCurve)
-  -- if device.nitrousOxideInjection.isExisting then
-  --   local torqueCurveNitrous = {}
-  --   local powerCurveNitrous = {}
-  --   nitrousTorques = device.nitrousOxideInjection.getAddedTorque()
-
-  --   for k, v in pairs(device.torqueCurve) do
-  --     if type(k) == "number" and k < maxRPM then
-  --       torqueCurveNitrous[k + 1] = v + (nitrousTorques[k] or 0) -
-  --           device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-  --           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-  --       powerCurveNitrous[k + 1] = torqueCurveNitrous[k + 1] * k * torqueToPower
-  --       if torqueCurveNitrous[k + 1] > maxTorque then
-  --         maxTorque = torqueCurveNitrous[k + 1]
-  --         maxTorqueRPM = k + 1
-  --       end
-  --       if powerCurveNitrous[k + 1] > maxPower then
-  --         maxPower = powerCurveNitrous[k + 1]
-  --         maxPowerRPM = k + 1
-  --       end
-  --     end
-  --   end
-
-  --   curveCounter = curveCounter + 1
-  --   table.insert(curves, curveCounter,
-  --     { torque = torqueCurveNitrous, power = powerCurveNitrous, name = "N2O", priority = 20 })
-  -- end
-
-  -- if device.turbocharger.isExisting then
-  --   local torqueCurveTurbo = {}
-  --   local powerCurveTurbo = {}
-  --   turboCoefs = device.turbocharger.getTorqueCoefs()
-
-  --   for k, v in pairs(device.torqueCurve) do
-  --     if type(k) == "number" and k < maxRPM then
-  --       torqueCurveTurbo[k + 1] = (v * (turboCoefs[k] or 0)) -
-  --           device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-  --           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-  --       powerCurveTurbo[k + 1] = torqueCurveTurbo[k + 1] * k * torqueToPower
-  --       if torqueCurveTurbo[k + 1] > maxTorque then
-  --         maxTorque = torqueCurveTurbo[k + 1]
-  --         maxTorqueRPM = k + 1
-  --       end
-  --       if powerCurveTurbo[k + 1] > maxPower then
-  --         maxPower = powerCurveTurbo[k + 1]
-  --         maxPowerRPM = k + 1
-  --       end
-  --     end
-  --   end
-
-  --   curveCounter = curveCounter + 1
-  --   table.insert(curves, curveCounter,
-  --     { torque = torqueCurveTurbo, power = powerCurveTurbo, name = "Turbo", priority = 30 })
-  -- end
-
-  -- if device.supercharger.isExisting then
-  --   local torqueCurveSupercharger = {}
-  --   local powerCurveSupercharger = {}
-  --   superchargerCoefs = device.supercharger.getTorqueCoefs()
-
-  --   for k, v in pairs(device.torqueCurve) do
-  --     if type(k) == "number" and k < maxRPM then
-  --       torqueCurveSupercharger[k + 1] = (v * (superchargerCoefs[k] or 0)) -
-  --           device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-  --           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-  --       powerCurveSupercharger[k + 1] = torqueCurveSupercharger[k + 1] * k * torqueToPower
-  --       if torqueCurveSupercharger[k + 1] > maxTorque then
-  --         maxTorque = torqueCurveSupercharger[k + 1]
-  --         maxTorqueRPM = k + 1
-  --       end
-  --       if powerCurveSupercharger[k + 1] > maxPower then
-  --         maxPower = powerCurveSupercharger[k + 1]
-  --         maxPowerRPM = k + 1
-  --       end
-  --     end
-  --   end
-
-  --   curveCounter = curveCounter + 1
-  --   table.insert(curves, curveCounter,
-  --     { torque = torqueCurveSupercharger, power = powerCurveSupercharger, name = "SC", priority = 40 })
-  -- end
-
-  -- if device.turbocharger.isExisting and device.supercharger.isExisting then
-  --   local torqueCurveFinal = {}
-  --   local powerCurveFinal = {}
-
-  --   for k, v in pairs(device.torqueCurve) do
-  --     if type(k) == "number" and k < maxRPM then
-  --       torqueCurveFinal[k + 1] = (v * (turboCoefs[k] or 0) * (superchargerCoefs[k] or 0)) -
-  --           device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-  --           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-  --       powerCurveFinal[k + 1] = torqueCurveFinal[k + 1] * k * torqueToPower
-  --       if torqueCurveFinal[k + 1] > maxTorque then
-  --         maxTorque = torqueCurveFinal[k + 1]
-  --         maxTorqueRPM = k + 1
-  --       end
-  --       if powerCurveFinal[k + 1] > maxPower then
-  --         maxPower = powerCurveFinal[k + 1]
-  --         maxPowerRPM = k + 1
-  --       end
-  --     end
-  --   end
-
-  --   curveCounter = curveCounter + 1
-  --   table.insert(curves, curveCounter,
-  --     { torque = torqueCurveFinal, power = powerCurveFinal, name = "Turbo + SC", priority = 50 })
-  -- end
-
-  -- if device.turbocharger.isExisting and device.nitrousOxideInjection.isExisting then
-  --   local torqueCurveFinal = {}
-  --   local powerCurveFinal = {}
-
-  --   for k, v in pairs(device.torqueCurve) do
-  --     if type(k) == "number" and k < maxRPM then
-  --       torqueCurveFinal[k + 1] = (v * (turboCoefs[k] or 0) + (nitrousTorques[k] or 0)) -
-  --           device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-  --           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-  --       powerCurveFinal[k + 1] = torqueCurveFinal[k + 1] * k * torqueToPower
-  --       if torqueCurveFinal[k + 1] > maxTorque then
-  --         maxTorque = torqueCurveFinal[k + 1]
-  --         maxTorqueRPM = k + 1
-  --       end
-  --       if powerCurveFinal[k + 1] > maxPower then
-  --         maxPower = powerCurveFinal[k + 1]
-  --         maxPowerRPM = k + 1
-  --       end
-  --     end
-  --   end
-
-  --   curveCounter = curveCounter + 1
-  --   table.insert(curves, curveCounter,
-  --     { torque = torqueCurveFinal, power = powerCurveFinal, name = "Turbo + N2O", priority = 60 })
-  -- end
-
-  -- if device.supercharger.isExisting and device.nitrousOxideInjection.isExisting then
-  --   local torqueCurveFinal = {}
-  --   local powerCurveFinal = {}
-
-  --   for k, v in pairs(device.torqueCurve) do
-  --     if type(k) == "number" and k < maxRPM then
-  --       torqueCurveFinal[k + 1] = (v * (superchargerCoefs[k] or 0) + (nitrousTorques[k] or 0)) -
-  --           device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-  --           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-  --       powerCurveFinal[k + 1] = torqueCurveFinal[k + 1] * k * torqueToPower
-  --       if torqueCurveFinal[k + 1] > maxTorque then
-  --         maxTorque = torqueCurveFinal[k + 1]
-  --         maxTorqueRPM = k + 1
-  --       end
-  --       if powerCurveFinal[k + 1] > maxPower then
-  --         maxPower = powerCurveFinal[k + 1]
-  --         maxPowerRPM = k + 1
-  --       end
-  --     end
-  --   end
-
-  --   curveCounter = curveCounter + 1
-  --   table.insert(curves, curveCounter,
-  --     { torque = torqueCurveFinal, power = powerCurveFinal, name = "SC + N2O", priority = 70 })
-  -- end
-
-  -- if device.turbocharger.isExisting and device.supercharger.isExisting and device.nitrousOxideInjection.isExisting then
-  --   local torqueCurveFinal = {}
-  --   local powerCurveFinal = {}
-
-  --   for k, v in pairs(device.torqueCurve) do
-  --     if type(k) == "number" and k < maxRPM then
-  --       torqueCurveFinal[k + 1] = (v * (turboCoefs[k] or 0) * (superchargerCoefs[k] or 0) + (nitrousTorques[k] or 0)) -
-  --           device.friction * device.wearFrictionCoef * device.damageFrictionCoef -
-  --           (device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef * k * rpmToAV)
-  --       powerCurveFinal[k + 1] = torqueCurveFinal[k + 1] * k * torqueToPower
-  --       if torqueCurveFinal[k + 1] > maxTorque then
-  --         maxTorque = torqueCurveFinal[k + 1]
-  --         maxTorqueRPM = k + 1
-  --       end
-  --       if powerCurveFinal[k + 1] > maxPower then
-  --         maxPower = powerCurveFinal[k + 1]
-  --         maxPowerRPM = k + 1
-  --       end
-  --     end
-  --   end
-
-  --   curveCounter = curveCounter + 1
-  --   table.insert(curves, curveCounter,
-  --     { torque = torqueCurveFinal, power = powerCurveFinal, name = "Turbo + SC + N2O", priority = 80 })
-  -- end
-
+  
   table.sort(
     curves,
     function(a, b)
@@ -285,7 +138,7 @@ local function getTorqueData(device)
     v.dash = dashes[k]
     v.width = 2
   end
-
+  print("maxTorqueAfter: " .. maxTorque .. " maxPowerAfter: " .. maxPower .. " maxTorqueRPM: " .. maxTorqueRPM .. " maxPowerRPM: " .. maxPowerRPM)
   return { maxRPM = maxRPM, curves = curves, maxTorque = maxTorque, maxPower = maxPower, maxTorqueRPM = maxTorqueRPM,
     maxPowerRPM = maxPowerRPM, finalCurveName = 1, deviceName = device.name, vehicleID = obj:getId() }
 end
@@ -305,7 +158,7 @@ end
 
 local function sendTorqueData(device, data)
   if not data then
-    data = device:getTorqueData()
+    data = getTorqueData(device)
   end
   guihooks.trigger("TorqueCurveChanged", data)
 end
@@ -376,17 +229,18 @@ local function updateTorque(device, dt)
 
   local finalFriction = device.friction * device.wearFrictionCoef * device.damageFrictionCoef
   local finalDynamicFriction = device.dynamicFriction * device.wearDynamicFrictionCoef * device.damageDynamicFrictionCoef
-
-  local torque = (device.torqueCurve[floor(engineAV * avToRPM)] or 0) * device.intakeAirDensityCoef
-  local maxCurrentTorque = torque - finalFriction - (finalDynamicFriction * engineAV)
+  
+  simEngine.update(dt)
+  local torque = simEngine.state.torque
+  -- local maxCurrentTorque = torque - finalFriction - (finalDynamicFriction * engineAV)
   --blend pure throttle with the constant power map
-  local throttleMap = min(max(throttle +
-    throttle * device.maxPowerThrottleMap / (torque * device.forcedInductionCoef * engineAV + 1e-30) * (1 - throttle), 0)
-    , 1)
+  -- local throttleMap = min(max(throttle +
+  --   throttle * device.maxPowerThrottleMap / (torque * device.forcedInductionCoef * engineAV + 1e-30) * (1 - throttle), 0)
+  --   , 1)
 
-  local ignitionCut = device.ignitionCutTime > 0
-  torque = ((torque * device.forcedInductionCoef * throttleMap) + device.nitrousOxideTorque) * device.outputTorqueState *
-      (ignitionCut and 0 or 1) * device.slowIgnitionErrorCoef * device.fastIgnitionErrorCoef
+  -- local ignitionCut = device.ignitionCutTime > 0
+  -- torque = ((torque * device.forcedInductionCoef * throttleMap) + device.nitrousOxideTorque) * device.outputTorqueState *
+  --     (ignitionCut and 0 or 1) * device.slowIgnitionErrorCoef * device.fastIgnitionErrorCoef
 
   local lastInstantEngineLoad = device.instantEngineLoad
   -- local instantLoad = min(max(torque /
@@ -423,13 +277,12 @@ local function updateTorque(device, dt)
   end
   --calculate the AV based on all loads
   local outputAV = 0
-  if TuningCheatOverwrite then
-    torque = simEngine.simulateEngine(dt, {RPM = RpmOverwrite, throttle = 1, instantEngineLoad = 1, map = MapOverwrite}, false)
+
+  outputAV = (engineAV + dt * (torque - torqueDiffSum - frictionTorque + starterTorque) * device.invEngInertia) * device.outputAVState
+  if TuningCheatOverwrite and RpmOverwrite ~= nil then
     outputAV = RpmOverwrite * rpmToAV
-  else
-    torque = simEngine.simulateEngine(dt, nil, false)
-    outputAV = (engineAV + dt * (torque - torqueDiffSum - frictionTorque + starterTorque) * device.invEngInertia) * device.outputAVState
   end
+
   --set all output torques and AVs to the newly calculated values
   for i = 1, device.numberOfOutputPorts do
     device[device.outputTorqueNames[i]] = torqueDiffSum
@@ -656,7 +509,7 @@ local function new(jbeamData)
   dummyData.name                = "mainEngine"
   dummyData.type                = "combustionEngine"
   engineFunctions               = require("powertrain/combustionEngine").new(dummyData)
-  local device                  = {
+  local device = {
     deviceCategories = shallowcopy(M.deviceCategories),
     requiredExternalInertiaOutputs = shallowcopy(M.requiredExternalInertiaOutputs),
     outputPorts = shallowcopy(M.outputPorts),
@@ -670,8 +523,6 @@ local function new(jbeamData)
     maxCumulativeGearRatio = 1,
     isPhysicallyDisconnected = true,
     isPropulsed = true,
-    outputAV1 = jbeamData.idleRPM * rpmToAV,
-    outputRPM = 0,
     inputAV = 0,
     outputTorque1 = 0,
     virtualMassAV = 0,
@@ -684,10 +535,12 @@ local function new(jbeamData)
     throttleFactor = 1,
     throttle = 0,
     requestedThrottle = 0,
+    maxTorqueLimit = math.huge,
     ignitionCoef = 1,
     dynamicFriction = jbeamData.dynamicFriction or 0,
     idleRPM = jbeamData.idleRPM,
     idleAV = jbeamData.idleRPM * rpmToAV,
+    idleAVOverwrite = 0,
     maxRPM = jbeamData.maxRPM,
     maxAV = jbeamData.maxRPM * rpmToAV,
     idleAVReadError = 0,
@@ -695,6 +548,7 @@ local function new(jbeamData)
     inertia = jbeamData.inertia or 0.1,
     idleAVStartOffset = 0,
     maxIdleThrottle = jbeamData.maxIdleThrottle or 0.15,
+    maxIdleThrottleOverwrite = 0,
     starterTorque = jbeamData.starterTorque or (jbeamData.friction * 15),
     starterMaxAV = (jbeamData.starterMaxRPM or jbeamData.idleRPM * 0.7) * rpmToAV,
     shutOffSoundRequested = false,
@@ -720,12 +574,13 @@ local function new(jbeamData)
     outputTorqueState = 1,
     outputAVState = 1,
     isDisabled = false,
-    lastOutputAV1 = jbeamData.idleRPM * rpmToAV,
     lastOutputTorque = 0,
     loadSmoother = newTemporalSmoothing(2, 2),
-    throttleSmoother = newTemporalSmoothing(15, 10),
+    throttleSmoother = newTemporalSmoothing(30, 15),
     engineLoad = 0,
     instantEngineLoad = 0,
+    exhaustFlowCoef = 0,
+    revLimiterActiveMaxExhaustFlowCoef = jbeamData.revLimiterActiveMaxExhaustFlowCoef or 0.5,
     ignitionCutTime = 0,
     slowIgnitionErrorCoef = 1,
     fastIgnitionErrorCoef = 1,
@@ -758,6 +613,10 @@ local function new(jbeamData)
     remainingFuelRatio = 1,
     fixedStepTimer = 0,
     fixedStepTime = 1 / 100,
+    soundLocations = {},
+    
+    spawnVehicleIgnitionLevel = 3, 
+
     --
     --wear/damage modifiers
     wearFrictionCoef = 1,
@@ -785,6 +644,7 @@ local function new(jbeamData)
     scaleOutputTorque = engineFunctions.scaleOutputTorque,
     activateStarter = engineFunctions.activateStarter,
     deactivateStarter = engineFunctions.deactivateStarter,
+    setCompressionBrakeCoef = engineFunctions.setCompressionBrakeCoef,
     sendTorqueData = sendTorqueData,
     getTorqueData = getTorqueData,
     checkHydroLocking = engineFunctions.checkHydroLocking,
@@ -793,23 +653,23 @@ local function new(jbeamData)
     enable = engineFunctions.enable,
     setIgnition = engineFunctions.setIgnition,
     cutIgnition = engineFunctions.cutIgnition,
-    setTempRevLimiter = engineFunctions.setTempRevLimiter,
-    resetTempRevLimiter = engineFunctions.resetTempRevLimiter,
+    setTempRevLimiter = simEngine.setTempRevLimiter,
+    resetTempRevLimiter = simEngine.resetTempRevLimiter,
     updateFuelUsage = updateFuelUsage,
     updateEnergyStorageRatios = updateEnergyStorageRatios,
     registerStorage = engineFunctions.registerStorage,
+    setExhaustSoundNodes = engineFunctions.setExhaustSoundNodes,
     exhaustEndNodesChanged = engineFunctions.exhaustEndNodesChanged,
     initEngineSound = engineFunctions.initEngineSound,
     initExhaustSound = engineFunctions.initExhaustSound,
+    setEngineSoundParameter = engineFunctions.setEngineSoundParameter,
     setEngineSoundParameterList = engineFunctions.setEngineSoundParameterList,
     getSoundConfiguration = engineFunctions.getSoundConfiguration,
+    setSoundLocation = engineFunctions.setSoundLocation,
+    updateSoundNodeDebug = engineFunctions.updateSoundNodeDebug,
     applyDeformGroupDamage = engineFunctions.applyDeformGroupDamage,
     setPartCondition = engineFunctions.setPartCondition,
-    getPartCondition = engineFunctions.getPartCondition,
-    setSoundLocation = engineFunctions.setSoundLocation,
-    soundLocations = engineFunctions.soundLocations,
-    updateSoundNodeDebug = engineFunctions.updateSoundNodeDebug,
-    setExhaustSoundNodes = engineFunctions.setExhaustSoundNodes
+    getPartCondition = engineFunctions.getPartCondition
   }
   
   --this code handles the requirement to support multiple output clutches
@@ -856,10 +716,6 @@ local function new(jbeamData)
     log("E", "combustionEngine.init", "Can't find torque table... Powertrain is going to break!")
   end
   
-  --   device.name = "mainEngine"
-  --   dump(jbeamData)
-  init(device, jbeamData)
-  
   local tempBurnEfficiencyTable = nil
   if not jbeamData.burnEfficiency or type(jbeamData.burnEfficiency) == "number" then
     tempBurnEfficiencyTable = { { 0, jbeamData.burnEfficiency or 1 }, { 1, jbeamData.burnEfficiency or 1 } }
@@ -882,19 +738,23 @@ local function new(jbeamData)
     device.invBurnEfficiencyTable[k] = 1 / v
   end
   
-  
+  init(device, jbeamData) -- temp init with just the basic stuff
+
   local baseTorqueTable = tableFromHeaderTable(jbeamData.torque)
   local rawBasePoints = {}
   local maxAvailableRPM = 0
+  simEngine.state.requestedThrottle = 1
+  simEngine.state.torqueCurveCreation = true
   for _, v in pairs(baseTorqueTable) do
-    maxAvailableRPM = max(maxAvailableRPM, v.rpm)
-    
-    -- table.insert(rawBasePoints, { v.rpm, v.torque })
     simEngine.state.RPM = v.rpm
-    simEngine.state.TPS = 1
+    maxAvailableRPM = max(maxAvailableRPM, v.rpm)
+    -- table.insert(rawBasePoints, { v.rpm, v.torque })
     -- simEngine.state.MAP = 102
-    table.insert(rawBasePoints, { v.rpm, simEngine.simulateEngine(0.01, {RPM = v.rpm, throttle = 1, instantEngineLoad = 1}, true) })
+    simEngine.update(1/2000)
+    table.insert(rawBasePoints, { v.rpm, simEngine.state.torque })
+    -- table.insert(rawBasePoints, { v.rpm, simEngine.simulateEngine(0.01, {RPM = v.rpm, throttle = 1, instantEngineLoad = 1}, true) })
   end
+  simEngine.state.torqueCurveCreation = false
   local rawBaseCurve = createCurve(rawBasePoints)
   
   local rawTorqueMultCurve = {}
@@ -957,25 +817,27 @@ local function new(jbeamData)
     device.maxRPM = min(maxAvailableRPM, revLimiterRPM)
     device.maxAV = device.maxRPM * rpmToAV
     
-    if device.revLimiterType == "rpmDrop" then --purely rpm drop based
-      device.revLimiterAVDrop = (jbeamData.revLimiterRPMDrop or (jbeamData.maxRPM * 0.03)) * rpmToAV
-      device.applyRevLimiter = revLimiterRPMDropMethod
-    elseif device.revLimiterType == "timeBased" then --combined both time or rpm drop, whatever happens first
-      device.revLimiterCutTime = jbeamData.revLimiterCutTime or 0.15
-      device.revLimiterMaxAVDrop = (jbeamData.revLimiterMaxRPMDrop or 500) * rpmToAV
-      device.revLimiterActiveTimer = 0
-      device.applyRevLimiter = revLimiterTimeMethod
-    elseif device.revLimiterType == "soft" then --soft limiter without any "drop", it just smoothly fades out throttle
-      device.revLimiterMaxAVOvershoot = (jbeamData.revLimiterSmoothOvershootRPM or 50) * rpmToAV
-      device.revLimiterMaxAV = device.maxAV + device.revLimiterMaxAVOvershoot
-      device.invRevLimiterRange = 1 / (device.revLimiterMaxAV - device.maxAV)
-      device.applyRevLimiter = revLimiterSoftMethod
-    else
-      log("E", "combustionEngine.init", "Unknown rev limiter type: " .. device.revLimiterType)
-      log("E", "combustionEngine.init", "Rev limiter will be disabled!")
-      device.hasRevLimiter = false
-    end
-    engineFunctions.applyRevLimiter = device.applyRevLimiter
+    -- if device.revLimiterType == "rpmDrop" then --purely rpm drop based
+    --   device.revLimiterAVDrop = (jbeamData.revLimiterRPMDrop or (jbeamData.maxRPM * 0.03)) * rpmToAV
+    --   device.applyRevLimiter = revLimiterRPMDropMethod
+    -- elseif device.revLimiterType == "timeBased" then --combined both time or rpm drop, whatever happens first
+    --   device.revLimiterCutTime = jbeamData.revLimiterCutTime or 0.15
+    --   device.revLimiterMaxAVDrop = (jbeamData.revLimiterMaxRPMDrop or 500) * rpmToAV
+    --   device.revLimiterActiveTimer = 0
+    --   device.applyRevLimiter = revLimiterTimeMethod
+    -- elseif device.revLimiterType == "soft" then --soft limiter without any "drop", it just smoothly fades out throttle
+    --   device.revLimiterMaxAVOvershoot = (jbeamData.revLimiterSmoothOvershootRPM or 50) * rpmToAV
+    --   device.revLimiterMaxAV = device.maxAV + device.revLimiterMaxAVOvershoot
+    --   device.invRevLimiterRange = 1 / (device.revLimiterMaxAV - device.maxAV)
+    --   device.applyRevLimiter = revLimiterSoftMethod
+    -- else
+    --   log("E", "combustionEngine.init", "Unknown rev limiter type: " .. device.revLimiterType)
+    --   log("E", "combustionEngine.init", "Rev limiter will be disabled!")
+    --   device.hasRevLimiter = false
+    -- end
+    --engineFunctions.applyRevLimiter = device.applyRevLimiter
+    device.hasRevLimiter = false
+  
   end
   
   device:resetTempRevLimiter()
@@ -1032,6 +894,8 @@ local function new(jbeamData)
   device.fastIgnitionErrorCoef = 1
   
   device.brakeSpecificFuelConsumption = 0
+  device.compressionBrakeCoefActual = 0
+  device.compressionBrakeCoefDesired = 0
   
   -- local tempBurnEfficiencyTable = nil
   -- if not jbeamData.burnEfficiency or type(jbeamData.burnEfficiency) == "number" then
@@ -1111,10 +975,15 @@ local function new(jbeamData)
     device.nitrousOxideInjection = { reset = nop, updateGFX = nop, updateSounds = nop, initSounds = nop,
     resetSounds = nop, registerStorage = nop, getAddedTorque = nop, getPartCondition = nop, isExisting = false }
   end
+  init(device, jbeamData)
+  device.simEngine = simEngine
 
   device.torqueData = getTorqueData(device)
   device.maxPower = device.torqueData.maxPower
   device.maxTorque = device.torqueData.maxTorque
+  
+  --print("AAAAAAAAAAA maxPower: " .. device.maxPower .. " maxTorque: " .. device.maxTorque)
+  
   device.maxPowerThrottleMap = device.torqueData.maxPower * psToWatt
   
   device.breakTriggerBeam = jbeamData.breakTriggerBeam
@@ -1123,6 +992,7 @@ local function new(jbeamData)
     device.breakTriggerBeam = nil
   end
   
+
   damageTracker.setDamage("engine", "engineDisabled", false)
   damageTracker.setDamage("engine", "engineLockedUp", false)
   damageTracker.setDamage("engine", "engineReducedTorque", false)
@@ -1135,7 +1005,9 @@ local function new(jbeamData)
   damageTracker.setDamage("engine", "impactDamage", false)
   
   selectUpdates(device)
-  
+  --   device.name = "mainEngine"
+  --   dump(jbeamData)
+  print("combustionEngine.init done")
   return device
 end
 

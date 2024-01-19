@@ -1,0 +1,136 @@
+{
+    //  TODO: add dead times
+
+    "port_injectors_100cc_min": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "100cc/min Port Injectors",
+            "value": 45,
+        },
+
+        "slotType": "port_injectors",
+        "mainEngine": {
+            "fuelSystemInjectors": {
+                "type": "port",
+                "injector_cc_min": 100, // cc/min @ baseFuelPressure
+                "baseFuelPressure_bar": 3, // bar
+                // quality 0 - 1. A quality setting of 1 will give you the exact values above
+                "quality": 0.95, // there will be a variation on 5% of the injected fuel vs the requested fuel for each injection event
+            }
+        }
+    },
+
+    "port_injectors_200cc_min": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "200cc/min Port Injectors",
+            "value": 60,
+        },
+
+        "slotType": "port_injectors",
+        "mainEngine": {
+            "fuelSystemInjectors": {
+                "type": "port",
+                "injector_cc_min": 200, // cc/min @ baseFuelPressure
+                "baseFuelPressure_bar": 3, // bar
+                // quality 0 - 1. A quality setting of 1 will give you the exact values above
+                "quality": 0.96, // there will be a variation on 5% of the injected fuel vs the requested fuel for each injection event
+            }
+        }
+    },
+
+    "port_injectors_236cc_min": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "236cc/min Port Injectors",
+            "value": 65,
+        },
+
+        "slotType": "port_injectors",
+        "mainEngine": {
+            "fuelSystemInjectors": {
+                "type": "port",
+                "injector_cc_min": 236, // cc/min @ baseFuelPressure
+                "baseFuelPressure_bar": 3, // bar
+                // quality 0 - 1. A quality setting of 1 will give you the exact values above
+                "quality": 0.98, // there will be a variation on 5% of the injected fuel vs the requested fuel for each injection event
+            }
+        }
+    },
+
+    "port_injectors_300cc_min": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "300cc/min Port Injectors",
+            "value": 80,
+        },
+
+        "slotType": "port_injectors",
+        "mainEngine": {
+            "fuelSystemInjectors": {
+                "type": "port",
+                "injector_cc_min": 300, // cc/min @ baseFuelPressure
+                "baseFuelPressure_bar": 3, // bar
+                // quality 0 - 1. A quality setting of 1 will give you the exact values above
+                "quality": 0.98, // there will be a variation on 5% of the injected fuel vs the requested fuel for each injection event
+            }
+        }
+    },
+
+    "port_injectors_400cc_min": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "400cc/min Port Injectors",
+            "value": 125,
+        },
+
+        "slotType": "port_injectors",
+        "mainEngine": {
+            "fuelSystemInjectors": {
+                "type": "port",
+                "injector_cc_min": 400, // cc/min @ baseFuelPressure
+                "baseFuelPressure_bar": 3, // bar
+                // quality 0 - 1. A quality setting of 1 will give you the exact values above
+                "quality": 0.99, // there will be a variation on 5% of the injected fuel vs the requested fuel for each injection event
+            }
+        }
+    },
+
+    "port_injectors_630cc_min": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "630cc/min Port Injectors",
+            "value": 150,
+        },
+
+        "slotType": "port_injectors",
+        "mainEngine": {
+            "fuelSystemInjectors": {
+                "type": "port",
+                "injector_cc_min": 630, // cc/min @ baseFuelPressure
+                "baseFuelPressure_bar": 3, // bar
+                // quality 0 - 1. A quality setting of 1 will give you the exact values above
+                "quality": 0.99, // there will be a variation on 5% of the injected fuel vs the requested fuel for each injection event
+            }
+        }
+    },
+
+    "port_injectors_800cc_min": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "800cc/min Port Injectors",
+            "value": 175,
+        },
+
+        "slotType": "port_injectors",
+        "mainEngine": {
+            "fuelSystemInjectors": {
+                "type": "port",
+                "injector_cc_min": 800, // cc/min @ baseFuelPressure
+                "baseFuelPressure_bar": 3, // bar
+                // quality 0 - 1. A quality setting of 1 will give you the exact values above
+                "quality": 0.99, // there will be a variation on 5% of the injected fuel vs the requested fuel for each injection event
+            }
+        }
+    },
+}

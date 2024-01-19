@@ -1,0 +1,5 @@
+ETK-K 3.0L I6
+236cc/min @ 3Bar port injectors 
+Fixed length 3*30cm intake runners
+40mm Drive by Wire throttle body
+Conservative tune

@@ -127,7 +127,81 @@ local updatesLookup = {
             end
         end
         return newTune
-    end
+    end,
+    _021To022 = function (oldTune)
+        local newTune = deepcopy(oldTune)
+        newTune.version = 0.22
+        -- add vlr-table
+        newTune['vlr-table'] = {
+            type = '2D',
+            displayName = 'Variable Length Runners Table',
+            sectionName = 'PWM',
+            unit = '%',
+            xName = 'RPM',
+            xValues = {400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200},
+            values = {},
+            cellsMin = 0,
+            cellsMax = 100,
+            cellsRedValue = 100,
+        }
+        for _, xVal in ipairs(newTune['vlr-table'].xValues) do
+            newTune['vlr-table'].values["" .. xVal] = 0
+        end
+        return newTune
+    end,
+    _022To03 = function (oldTune)
+        local newTune = deepcopy(oldTune)
+        newTune.version = 0.3
+        -- add boost-table
+        --[[
+            createTable3D(
+                'Boost Table', 'PSI', 'boost', 'boost-table',
+                'RPM', [400, 500, 600, 700, 800, 1000, 1200, 1500, 1800, 2000, 2200, 2400, 2600, 2800, 3100, 3400, 3700, 4000, 4300, 4700, 5100, 5500, 5900, 6200, 6700, 7200, 7700, 8200, 8700, 9200].sort((a, b) => a - b),
+                'TPS', [100, 93, 86, 79, 72, 65, 58, 51, 44, 37, 30, 23, 16, 9, 2].sort((a, b) => b - a),
+                0, 255, 40
+            );
+        ]]
+        newTune['boost-table'] = {
+            type = '3D',
+            displayName = 'Boost Table',
+            sectionName = 'boost',
+            unit = 'PSI',
+            xName = 'RPM',
+            xValues = {600, 1200, 1800, 2400, 2800, 3400, 4000, 4700, 5500, 6200, 7200, 8200},
+            yName = 'TPS',
+            yValues = {100, 90, 75, 60, 45, 20, 10, 0},
+            values = {},
+            cellsMin = 0,
+            cellsMax = 255,
+            cellsRedValue = 40,
+        }
+        -- fill all values to 0
+        for _, yVal in ipairs(newTune['boost-table'].yValues) do
+            newTune['boost-table'].values["" .. yVal] = {}
+            for _, xVal in ipairs(newTune['boost-table'].xValues) do
+                newTune['boost-table'].values["" .. yVal]["" .. xVal] = 0
+            end
+        end
+        return newTune
+    end,
+    _03To031 = function(oldTune)
+        local newTune = deepcopy(oldTune)
+        newTune.version = 0.31
+        --createOption('Drive-by-Wire Idle Throttle Opening', '%', 'options', 'dbw-idle-throttle', 'number', 0.1, 0, 25, 5);
+        newTune.options['dbw-idle-throttle'] = {
+            value = 5,
+            unit = "%",
+            displayName = "Drive-by-Wire Idle Throttle Opening",
+            sectionName = "options",
+            optionName = "dbw-idle-throttle",
+            optionType = "number",
+            step = "0.1",
+            minimum = 0,
+            maximum = 25,
+            redValue = 10,
+        }
+        return newTune
+    end,
 }
 local multipleUpdatesLookup = {
     --#region To 0.2
@@ -155,6 +229,104 @@ local multipleUpdatesLookup = {
         return tune021
     end,
     --#endregion To 0.21
+
+    --#region To 0.22
+    _nilTo022 = function(oldTune)
+        local tune01 = updatesLookup['_nilTo01'](oldTune)
+
+        local tune02 = updatesLookup['_01To02'](tune01)
+
+        local tune021 = updatesLookup['_02To021'](tune02)
+
+        local tune022 = updatesLookup['_021To022'](tune021)
+
+        return tune022
+    end,
+    _01To022 = function(oldTune)
+        local tune02 = updatesLookup['_01To02'](oldTune)
+        local tune021 = updatesLookup['_02To021'](tune02)
+        local tune022 = updatesLookup['_021To022'](tune021)
+        return tune022
+    end,
+    _021To022 = function(oldTune)
+        local tune022 = updatesLookup['_021To022'](oldTune)
+        return tune022
+    end,
+    --#endregion To 0.22
+
+    --#region To 0.3
+    _nilTo03 = function(oldTune)
+        local tune01 = updatesLookup['_nilTo01'](oldTune)
+
+        local tune02 = updatesLookup['_01To02'](tune01)
+
+        local tune021 = updatesLookup['_02To021'](tune02)
+
+        local tune022 = updatesLookup['_021To022'](tune021)
+
+        local tune03 = updatesLookup['_022To03'](tune022)
+
+        return tune03
+    end,
+    _01To03 = function(oldTune)
+        local tune02 = updatesLookup['_01To02'](oldTune)
+        local tune021 = updatesLookup['_02To021'](tune02)
+        local tune022 = updatesLookup['_021To022'](tune021)
+        local tune03 = updatesLookup['_022To03'](tune022)
+        return tune03
+    end,
+    _021To03 = function(oldTune)
+        local tune022 = updatesLookup['_021To022'](oldTune)
+        local tune03 = updatesLookup['_022To03'](tune022)
+        return tune03
+    end,
+    _022To03 = function(oldTune)
+        local tune03 = updatesLookup['_022To03'](oldTune)
+        return tune03
+    end,
+    --#endregion To 0.3
+    
+    --#region To 0.31
+    _nilTo031 = function(oldTune)
+        local tune01 = updatesLookup['_nilTo01'](oldTune)
+
+        local tune02 = updatesLookup['_01To02'](tune01)
+
+        local tune021 = updatesLookup['_02To021'](tune02)
+
+        local tune022 = updatesLookup['_021To022'](tune021)
+
+        local tune03 = updatesLookup['_022To03'](tune022)
+
+        local tune031 = updatesLookup['_03To031'](tune03)
+
+        return tune031
+    end,
+    _01To031 = function(oldTune)
+        local tune02 = updatesLookup['_01To02'](oldTune)
+        local tune021 = updatesLookup['_02To021'](tune02)
+        local tune022 = updatesLookup['_021To022'](tune021)
+        local tune03 = updatesLookup['_022To03'](tune022)
+        local tune031 = updatesLookup['_03To031'](tune03)
+        return tune031
+    end,
+    _021To031 = function(oldTune)
+        local tune022 = updatesLookup['_021To022'](oldTune)
+        local tune03 = updatesLookup['_022To03'](tune022)
+        local tune031 = updatesLookup['_03To031'](tune03)
+        return tune031
+    end,
+    _022To031 = function(oldTune)
+        local tune03 = updatesLookup['_022To03'](oldTune)
+        local tune031 = updatesLookup['_03To031'](tune03)
+        return tune031
+    end,
+    _03To031 = function(oldTune)
+        local tune031 = updatesLookup['_03To031'](oldTune)
+        return tune031
+    end,
+    --#endregion To 0.31
+    
 }
 
 local function updateTuneFile(tuneFilePath, updateToVersion)
