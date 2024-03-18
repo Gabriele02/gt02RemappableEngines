@@ -1,0 +1,372 @@
+{
+    "fuel_pump_125l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "125 L/h OEM",
+            "value": 60,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [110, 100],
+                    [112, 95],
+                    [113, 90],
+                    [114, 85],
+                    [115, 80],
+                    [117, 75],
+                    [118, 70],
+                    [119, 65],
+                    [120, 60],
+                    [122, 55],
+                    [123, 50],
+                    [125, 45],
+                    [127, 40],
+                    [128, 35],
+                    [131, 30],
+                    [200, 5], //made up
+                ],
+                "quality": 0.95, 
+            }
+        }
+    },
+    "fuel_pump_200l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "200 L/h OEM+",
+            "value": 125,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [95, 100],
+                    [111, 95],
+                    [128, 90],
+                    [140, 85],
+                    [151, 80],
+                    [160, 75],
+                    [166, 70],
+                    [174, 65],
+                    [181, 60],
+                    [187, 55],
+                    [193, 50],
+                    [200, 45],
+                    [207, 40],
+                    [212, 35],
+                    [216, 30],
+                    [400, 5], //made up
+                ],
+                "quality": 0.95, 
+            }
+        }
+    },
+    "fuel_pump_255l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "255 L/h WhatBro 255",
+            "value": 130,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [121, 100],
+                    [142, 95],
+                    [163, 90],
+                    [178, 85],
+                    [193, 80],
+                    [203, 75],
+                    [212, 70],
+                    [222, 65],
+                    [231, 60],
+                    [239, 55],
+                    [246, 50],
+                    [255, 45],
+                    [265, 40],
+                    [271, 35],
+                    [276, 30],
+                    [400, 5], //made up
+                ],
+                "quality": 0.95, 
+            }
+        }
+    },
+    "fuel_pump_370l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "370 L/h Thick 1020",
+            "value": 360,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [121, 100],
+                    [142, 95],
+                    [163, 90],
+                    [178, 85],
+                    [193, 80],
+                    [203, 75],
+                    [212, 70],
+                    [222, 65],
+                    [231, 60],
+                    [239, 55],
+                    [246, 50],
+                    [255, 45],
+                    [265, 40],
+                    [271, 35],
+                    [276, 30],
+                    [400, 5], //made up
+                ],
+                "quality": 0.97, 
+            }
+        }
+    },
+    "fuel_pump_300l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "300 L/h Boss 044",
+            "value": 250,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [271, 100],
+                    [274, 95],
+                    [276, 90],
+                    [278, 85],
+                    [280, 80],
+                    [284, 75],
+                    [287, 70],
+                    [290, 65],
+                    [292, 60],
+                    [296, 55],
+                    [299, 50],
+                    [303, 45],
+                    [307, 40],
+                    [311, 35],
+                    [316, 30],
+                    [400, 5], //made up
+                ],
+                "quality": 0.97, 
+            }
+        }
+    },
+    "fuel_pump_330l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "330 L/h MEA 340",
+            "value": 330,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [202, 90],
+                    [214, 85],
+                    [225, 80],
+                    [242, 75],
+                    [258, 70],
+                    [270, 65],
+                    [282, 60],
+                    [301, 55],
+                    [320, 50],
+                    [330, 45],
+                    [340, 40],
+                    [350, 35],
+                    [360, 30],
+                    [400, 5], //made up
+                ],
+                "quality": 0.972, 
+            }
+        }
+    },
+    "fuel_pump_390l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "390 L/h WhatBro 400",
+            "value": 340,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [155, 100],
+                    [204, 95],
+                    [253, 90],
+                    [269, 85],
+                    [285, 80],
+                    [301, 75],
+                    [316, 70],
+                    [331, 65],
+                    [347, 60],
+                    [362, 55],
+                    [378, 50],
+                    [391, 45],
+                    [405, 40],
+                    [418, 35],
+                    [432, 30],
+                    [500, 5], //made up
+                ],
+                "quality": 0.972, 
+            }
+        }
+    },
+    "fuel_pump_420l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "420 L/h WhatBro 450",
+            "value": 350,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [206, 100],
+                    [237, 95],
+                    [268, 90],
+                    [298, 85],
+                    [328, 80],
+                    [342, 75],
+                    [355, 70],
+                    [368, 65],
+                    [380, 60],
+                    [393, 55],
+                    [405, 50],
+                    [418, 45],
+                    [430, 40],
+                    [442, 35],
+                    [455, 30],
+                    [555, 5], //made up
+                ],
+                "quality": 0.98, 
+            }
+        }
+    },
+    "fuel_pump_380l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "380 L/h MagnetFuel NoobTuner 625",
+            "value": 460,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [259, 100],
+                    [270, 95],
+                    [281, 90],
+                    [292, 85],
+                    [303, 80],
+                    [314, 75],
+                    [326, 70],
+                    [337, 65],
+                    [348, 60],
+                    [359, 55],
+                    [370, 50],
+                    [381, 45],
+                    [392, 40],
+                    [404, 35],
+                    [415, 30],
+                    [500, 5], //made up
+                ],
+                "quality": 0.98, 
+            }
+        }
+    },
+    "fuel_pump_520l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "520 L/h MagnetFuel NoobTuner 750",
+            "value": 630,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [374, 100],
+                    [388, 95],
+                    [401, 90],
+                    [414, 85],
+                    [428, 80],
+                    [441, 75],
+                    [454, 70],
+                    [468, 65],
+                    [481, 60],
+                    [494, 55],
+                    [507, 50],
+                    [521, 45],
+                    [534, 40],
+                    [547, 35],
+                    [561, 30],
+                    [650, 5], //made up
+                ],
+                "quality": 0.98, 
+            }
+        }
+    },
+    "fuel_pump_500l_h": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "500 L/h GroundMotive A1000",
+            "value": 500,
+        },
+
+        "slotType": "tunable_engine_fuel_pump",
+        "mainEngine": {
+            "fuelSystemFuelPump": {
+                "flow_data": [
+                    
+                    [0, 100], //made up
+                    [330, 90],
+                    [358, 85],
+                    [383, 80],
+                    [407, 75],
+                    [430, 70],
+                    [449, 65],
+                    [467, 60],
+                    [480, 55],
+                    [492, 50],
+                    [496, 45],
+                    [499, 40],
+                    [505, 35],
+                    [511, 30],
+                    [600, 5], //made up
+                ],
+                "quality": 0.98, 
+            }
+        }
+    },
+}

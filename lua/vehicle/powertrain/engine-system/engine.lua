@@ -5,10 +5,13 @@ local combustionEngine = nil
 local engine = {
     ecu = require("lua.vehicle.powertrain.engine-system.ecu.ecu"),
     intake = require("lua.vehicle.powertrain.engine-system.intake.intake-system"),
+    fuelPump = require("lua.vehicle.powertrain.engine-system.actuators.fuelPump"),
     combustion = require("lua.vehicle.powertrain.engine-system.combustion.cylinders"),
     rotating_assembly = require("lua.vehicle.powertrain.engine-system.rotating-assembly.rotating-assembly"),
+    sensors = require("lua.vehicle.powertrain.engine-system.sensors.sensors")
 }
 
+local sensors = nil
 
 -- conversions
 --TODO: switch to physicalQuantity
@@ -71,13 +74,14 @@ local fuelSystemMeasurements = {
         flow = 0,
     },
     fuel_pressure_regulator = {
-        pressure = 0,
+        pressure_bar = 0,
     },
 }
 -- table to store instant engine state
 local state = {
     RPM = 0,--[[1/s]]
     AV = 0,--[[rad/s]]
+    ADV = 0,
     lambda = 0,
     torqueCurveCreation = false,
     combustionsPerSecond = 0,
@@ -98,21 +102,32 @@ local state = {
             injectors = {
                 on_time_s = 0,
                 fuel_mg_per_combustion = 0,
+                duty = 0,
             },
             variable = { -- used only wih variable length intake runners
                 target_length_cm = 0,
             },
+            air_mass_temp_k = 0, -- air mass temperature after fuel evaporation
             length = 0,
         }
+    },
+    fuelSystem = {
+        pressure_bar = 0,
+        fuel_density_kg_l = 0.743, --[[kg/l]]
+        flow_l_h = 0,
+        fuel_lines_pressure_bar = 0, --[[bar]] --pressure in the fuel lines, before the fuel pressure regulator
     },
     combustionTorque = 0,
     torque = 0,
     requestedThrottle = 0,
+    requestedTPS = 0,
     volumetric_efficiency = 0,
     thermal_efficiency = 0,
     instantEngineLoad = 0,
     engineLoad = 0,
     targetBoostPressure = 0, --[[Pa]]
+    knockSensor = false,
+    max_pressure_point_dATDC = 0, --[[degrees ATDC]]
 }
 
 -- Same as state but updated at slower (More realistic) intervals
@@ -148,7 +163,7 @@ local misfire_timer = 0
 local prev_data = {}
 
 -- function to print table content
-function tprint (tbl, indent)
+local function tprint (tbl, indent)
   if not indent then indent = 0 end
   local toprint = string.rep(" ", indent) .. "{\r\n"
   indent = indent + 2 
@@ -173,12 +188,12 @@ function tprint (tbl, indent)
   return toprint
 end
 
-function printTable(tbl)
+local function printTable(tbl)
   print(tprint(tbl))
 end
 
 
-function init(data)
+local function init(data)
     --  data content
     --  simEngine = data.engine
     --  engineMeasurements = data.engineMeasurements
@@ -191,27 +206,34 @@ function init(data)
     data.intakeMeasurements = intakeMeasurements
     data.fuelSystemMeasurements = fuelSystemMeasurements
     data.intakeMeasurements.idle_throttle = data.jbeamData.idle_throttle or 0.1
-    
+    data.sensors = sensors
+
     print(v.config.partConfigFilename)
 
-    jbeamData = data.jbeamData
+    local jbeamData = data.jbeamData
     --thisEngine = localEngine
     engineMeasurements.compression_ratio = jbeamData.compression_ratio
-  
     engineMeasurements.stroke_cm = jbeamData.stroke_cm
     engineMeasurements.bore_cm = jbeamData.bore_cm
     engineMeasurements.num_cylinders = jbeamData.num_cylinders
     engineMeasurements.displacement_cc = math.pi * (engineMeasurements.bore_cm / 2) * (engineMeasurements.bore_cm / 2) *
     engineMeasurements.stroke_cm * engineMeasurements.num_cylinders
     print("displacement_cc: " .. engineMeasurements.displacement_cc)
-  
+
     -- fuel system
     fuelSystemMeasurements.injectors.injector_cc_min = jbeamData.fuelSystemInjectors.injector_cc_min
     fuelSystemMeasurements.injectors.injector_max_mg_s = fuelSystemMeasurements.injectors.injector_cc_min / 1.38888889 --[[cc/min to g/min @ 720kg/m^3]] / 60 --[[g/min to g/s]] * 1000 --[[g/s to mg/s]]
 
     fuelSystemMeasurements.injectors.injector_base_pressure = jbeamData.fuelSystemInjectors.baseFuelPressure_bar
     fuelSystemMeasurements.injectors.injector_quality = jbeamData.fuelSystemInjectors.quality    
-  
+
+    fuelSystemMeasurements.fuel_pressure_regulator.pressure_bar = jbeamData.fuelSystemFuelPressureRegulator.pressure_bar
+    fuelSystemMeasurements.fuelPump = jbeamData.fuelSystemFuelPump
+
+    -- sensors
+    sensors.lambdaSensor = jbeamData.lambdaSensor
+    sensors.knockSensor = jbeamData.knockSensor
+    sensors.MAPSensor = jbeamData.MAPSensor
     -- intake
     -- engineMeasurements.throttle_body_diameter_cm = jbeamData.throttle_body_diameter_cm
     -- engineMeasurements.throttle_body_max_flow = jbeamData.throttle_body_max_flow
@@ -239,6 +261,11 @@ function init(data)
     end
     volumetric_efficiency_curve = createCurve(rawBasePoints, true)
   
+    intakeMeasurements.hasIntercooler = jbeamData.intakeSystemIntercooler and true or false
+    if intakeMeasurements.hasIntercooler then
+      intakeMeasurements.intercooler = jbeamData.intakeSystemIntercooler
+    end
+
     -- local tuneFle = readFile('data/tune.json')
   
     -- initialAfterfire.sustainedAfterFireCoef = thisEngine.sustainedAfterFireCoef
@@ -252,15 +279,17 @@ function init(data)
     -- thisEngine.sustainedAfterFireTimer = 100
     -- thisEngine.instantAfterFireCoef = 100
     -- thisEngine.instantAfterFireTimer = 100
+    state = engine.sensors.init(data, state)
     state = engine.ecu.init(data, state)
     state = engine.intake.init(data, state)
+    state = engine.fuelPump.init(data, state)
     state = engine.combustion.init(data, state)
     state = engine.rotating_assembly.init(data, state)
     return state
 end
 
 local tick = 0
-function update(dt) -- -> modifyed state
+local function update(dt) -- -> modifyed state
     -- if combustionEngine.thermals then
     --   print(combustionEngine.thermals.coolantTemperature)
     -- end
@@ -289,7 +318,11 @@ function update(dt) -- -> modifyed state
       state.combustionsPerSecond = state.RPM / 60 --[[RPM to RPS]] / 2 --[[4 stroke engine]]
       state.manifold.MAP = MapOverwrite
     end
-    -- 1 - intake
+
+    -- 1 - fuel pump
+    engine.fuelPump.update(state, dt)
+
+    -- 2 - intake
     engine.intake.update(state, dt)
     combustionEngine.instantEngineLoad = state.instantEngineLoad
     combustionEngine.engineLoad = state.engineLoad
@@ -300,11 +333,14 @@ function update(dt) -- -> modifyed state
       state.combustionsPerSecond = state.RPM / 60 --[[RPM to RPS]] / 2 --[[4 stroke engine]]
       state.manifold.MAP = MapOverwrite
     end
-    -- 2 - combustion
+    -- 3 - combustion
     if tick % 50 == 0 then
         --printTable(state)
     end
-    engine.combustion.update(state, dt)
+    -- if no rpm, no combustion
+    if state.RPM > 5 then
+      engine.combustion.update(state, dt)
+    end
 
     if TuningCheatOverwrite and RpmOverwrite ~= nil and MapOverwrite ~= nil then
       state.RPM = RpmOverwrite
@@ -312,7 +348,7 @@ function update(dt) -- -> modifyed state
       state.combustionsPerSecond = state.RPM / 60 --[[RPM to RPS]] / 2 --[[4 stroke engine]]
       state.manifold.MAP = MapOverwrite
     end
-    -- 3 - rotating assembly
+    -- 4 - rotating assembly
     engine.rotating_assembly.update(state, dt)
     
     if TuningCheatOverwrite and RpmOverwrite ~= nil and MapOverwrite ~= nil then
@@ -323,20 +359,17 @@ function update(dt) -- -> modifyed state
       combustionEngine.outputAV1 = state.AV
     end
 
+    -- after all calculations, update sensors
+    engine.sensors.update(state, dt)
+
     if tick % 50 == 0 then
       --printTable(state)
     end
     return state
 end
 
-function reset()
-    -- TODO: NON VA
-    state = {}
-    state = engine.ecu.init(state)
-    state = engine.intake.init(state)
-    state = engine.combustion.init(state)
-    state = engine.rotating_assembly.init(state)
-    return state
+local function reset()
+  engine.ecu.reset()
 end
 
 local function updateGFX(device, dt)
@@ -347,10 +380,12 @@ M.init = init
 M.update = update
 M.reset = reset
 M.state = state
+M.sensors = engine.sensors
 M.setTempRevLimiter = engine.ecu.setTempRevLimiter
 M.resetTempRevLimiter = engine.ecu.resetTempRevLimiter
 M.get3DTableValue = engine.ecu.get3DTableValue
 M.get2DTableValue = engine.ecu.get2DTableValue
+M.getOptionValue = engine.ecu.getOptionValue
 M.updateGFX = updateGFX
 
 return M

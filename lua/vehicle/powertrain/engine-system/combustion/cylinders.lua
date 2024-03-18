@@ -45,7 +45,7 @@ local misfire_probability = 0
 local misfire_timer = 0
 local fuel_misfire = 0
 
-function init(data, state)
+local function init(data, state)
     
     engineMeasurements = data.engineMeasurements
     combustionEngine = data.combustionEngine
@@ -118,7 +118,7 @@ function init(data, state)
     return state
 end
 local tick = 0	
-function update(state, dt) -- -> modifyed state 
+local function update(state, dt) -- -> modifyed state 
     tick = tick + 1   
     if tick > 100000 then
         tick = 0
@@ -183,19 +183,35 @@ function update(state, dt) -- -> modifyed state
             * ((7200 - (7200 - state.RPM ) * (0.3)) / 7200)
         -- https://www.researchgate.net/publication/281456259_Flame_Propagation_of_Bio-Ethanol_in_a_Constant_Volume_Combustion_Chamber
         -- TODO: forse è meglio usare il metodo indicato al link sopra
-
+        -- if state.manifold.IAT > (50 + 273.15) then
+        --     fuel_burn_duration_deg = fuel_burn_duration_deg * math.min(1, (50 + 273.15) / (state.manifold.IAT ^ 2))
+        --     print("IAT: " .. state.manifold.IAT .. " fuel_burn_duration_deg: " .. fuel_burn_duration_deg)
+        -- end
         max_pressure_point_dATDC = -state.ADV + fuel_burn_duration_deg
         state.max_pressure_point_dATDC = max_pressure_point_dATDC
         -- simulate knock damage
-        if max_pressure_point_dATDC < 0 then
-            detonationFactor = math.min(math.max(1 - math.abs(max_pressure_point_dATDC / fuel_burn_duration_deg), 0), 1)
+        if max_pressure_point_dATDC < 0 or state.manifold.runners.air_mass_temp_k > (50 + 273.15) then
+            local IATdetonationFactor = math.min(0.33 * (state.manifold.runners.air_mass_temp_k / (100 + 273.15)) ^ 4 + 0.64 * (-(max_pressure_point_dATDC / 12) + 1) , 1)
+            --print((0.5 * (state.manifold.runners.air_mass_temp_k / (100 + 273.15)) ^ 4) .. ", "..(0.5 * (-(max_pressure_point_dATDC / 12) + 1)))
+            if math.random() < IATdetonationFactor and not state.torqueCurveCreation then
+                -- combustionEngine:lockUp()
+                max_pressure_point_dATDC = -10 * IATdetonationFactor
+                print("IATdetonationFactor: " .. IATdetonationFactor .. " max_pressure_point_dATDC: " .. max_pressure_point_dATDC)
+            end
             -- print("KNOCK KNOCK")
             --TODO: spostare in rotating-assembly
-            if math.random() < math.abs(max_pressure_point_dATDC / 20) ^ 5 and not state.torqueCurveCreation then
-                combustionEngine:lockUp()
+            if max_pressure_point_dATDC < 0 then
+                detonationFactor = math.min(math.max(1 - math.abs(max_pressure_point_dATDC / fuel_burn_duration_deg), 0), 1)
+                print("detonationFactor: " .. detonationFactor)
+                if math.random() < math.abs(max_pressure_point_dATDC / 20) ^ 5 and not state.torqueCurveCreation then
+                    combustionEngine:lockUp()
+                    print("IATdetonationFactor: " .. IATdetonationFactor .. " max_pressure_point_dATDC: " .. max_pressure_point_dATDC)
+                end
+            else
+                detonationFactor = 1
             end
         end
-        state.knockSensor = max_pressure_point_dATDC < -2
+        state.knockSensor = max_pressure_point_dATDC < 0 -- TODO: impostare con sensibilità del sensore di detonazione
 
         local map_factor = state.manifold.MAP / 100
         if state.manifold.MAP > 0 and state.manifold.MAP < 100 then

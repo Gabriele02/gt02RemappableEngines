@@ -14,7 +14,29 @@ local variableRunnersLengthSmmother = nil
 
 -- condensed fuel on the runners walls (mg)
 local totalCondensedFuel_mg = 0
+--[[idee:
+    http://www.exx.se/techinfo/runners/runners.html
+    https://www.thirdgen.org/forums/tpi/183201-equations-runner-length-runner.html#post1334232
+]]
+--[[
+    https://www.engineeringtoolbox.com/methanol-properties-d_1209.html
+    temp(C)    Latent Heat of Vaporization (kJ/kg) of methanol
+    -50, 1194
+    -30, 1187
+    -10, 1182
+    10, 1175
+    30, 1155
+    50, 1125
+    70, 1085
+    90, 1035
+    110, 980
+    130, 920
+    150, 850
 
+    https://www.engineeringtoolbox.com/fluids-evaporation-latent-heat-d_147.html
+    ethanol 846
+    gasoline 305
+]]
 --[[
 local function check_multiple(to_check, number, multiple_ind)
     local multiple = number * multiple_ind
@@ -49,7 +71,7 @@ local function init(data, state)
     return state
 end
 
-function update(state, dt) -- -> modifyed state
+local function update(state, dt) -- -> modifyed state
     
     -- METHOD 1: but based on a made up function r(x)
     --[[
@@ -152,7 +174,7 @@ function update(state, dt) -- -> modifyed state
 
             -- - max_eff / 2 * math.exp(-((state.RPM / 1000 - max_eff_rpm / 500 )^2) / (2 * (eff_range / 500 )^2))
             -- - max_eff / 4 * math.exp(-((state.RPM / 1000 - max_eff_rpm / 250 )^2) / (2 * (eff_range / 250 )^2))
-    runners_efficiency = r
+    local runners_efficiency = r
 
     state.manifold.MAF = state.manifold.MAF * (1 + runners_efficiency)
     state.volumetric_efficiency = (state.volumetric_efficiency or 0) * (1 + runners_efficiency)
@@ -162,7 +184,7 @@ function update(state, dt) -- -> modifyed state
     if state.injectionType == "port" then
         injector.update(state, dt)
         local actual_fuel_mg_per_combustion = state.manifold.runners.injectors.fuel_mg_per_combustion
-        
+
         --TODO: get actual data to model fuel condensation to the intake manifold
         if false and combustionEngine.thermals and not state.torqueCurveCreation then
             local coolantTemperature = combustionEngine.thermals.coolantTemperature
@@ -241,7 +263,20 @@ function update(state, dt) -- -> modifyed state
             --print("condensation_factor: " .. condensation_factor .. ", condensed_fuel_mg_per_combustion: " .. condensed_fuel_mg_per_combustion .. " drip_mg_per_combustion: " .. drip_mg_per_combustion .. " drip_factor: " .. drip_factor)
 
             actual_fuel_mg_per_combustion = math.max(actual_fuel_mg_per_combustion - condensed_fuel_mg_per_combustion + drip_mg_per_combustion, 0)
-
+            -- calculate IAT temperature drop from fuel heat of vaporization 
+            -- https://www.google.com/amp/s/www.engineeringtoolbox.com/amp/methanol-properties-d_1209.html
+            local heat_of_vaporization = 305 --[[kJ/Kg]]
+            local heat_of_vaporization_j_mg = heat_of_vaporization / 1000 --[[J/mg]]
+            local required_energy = actual_fuel_mg_per_combustion * heat_of_vaporization_j_mg --[[J]]
+            -- energy is subtracted from the intake air temperature
+            local IAT_c = intakeMeasurements.IAT - 273.15 --[[ºK to ºC]]
+            IAT_c = IAT_c + (
+                - required_energy
+            ) * 1005 --[[J/(kg*K)]] * dt
+            
+            state.manifold.runners.air_mass_temp_k = IAT_c + 273.15 
+            --print("Runners_c: " .. state.manifold.runners.air_mass_temp_k - 273.15)
+            
         end
         state.manifold.runners.air_fuel_ratio = state.manifold.runners.massAirflowIntoCylinder / actual_fuel_mg_per_combustion
         -- if state.manifold.runners.air_fuel_ratio < 9 or state.manifold.runners.air_fuel_ratio > 16 then

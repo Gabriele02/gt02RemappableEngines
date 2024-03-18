@@ -1,0 +1,14 @@
+[
+    {
+        "id": "knock-correction",
+        "description": "Decrease ignition timing advance if knock is detected"
+    },
+    {
+        "id": "knock-autoadaptation-speed",
+        "description": "Increases a value in the Knock Autoadaptation table if knock is detected at a certain RPM and load (MAP). A value of 0% means that the values won't be changed, a value of 100% means that the values will be increased by 1 each knock event"
+    },
+    {
+        "id": "knock-max-retard",
+        "description": "Maximum ammount the ECU is allowed to retard timing when knock is detected (Does NOT apply to Knock Autoadaptation)"
+    }
+]

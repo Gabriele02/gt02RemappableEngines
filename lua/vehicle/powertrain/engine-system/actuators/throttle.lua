@@ -6,7 +6,7 @@ local intakeMeasurements = nil
 local atmToKPa = 101.325
 local specific_gravity_air = 1
 
-function init(data, state)
+local function init(data, state)
   intakeMeasurements = data.intakeMeasurements
   --https://www.valteccn.com/blog/butterfly-valve-article/flow-coefficient-of-butterfly-valve-cv-value/
   local throttle_cv_points = {
@@ -89,7 +89,7 @@ function init(data, state)
 end
 
 local function calculateThrottlePosition(state)
-    local throttle = state.requestedThrottle --or intakeMeasurements.idle_throttle
+    local throttle = state.requestedTPS --or intakeMeasurements.idle_throttle
     --   if state.ignitionCoef == 0 and state.manifold.throttle == nil then
     --     throttle = 0
     -- end
@@ -126,7 +126,7 @@ local function calculateThrottleAirflow(state)
     return res
 end
 
-function update(state, dt) -- -> modifyed state
+local function update(state, dt) -- -> modifyed state
     calculateThrottlePosition(state)
     local throttleCv = getThrottleCv(state)
     local massAirflowIntoIntake = calculateThrottleAirflow(state)

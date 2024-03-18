@@ -1,0 +1,150 @@
+{
+    "tunable_engine_sensors":{
+        "information": {
+            "authors": "BeamNG",
+            "name": "Engine Sensors",
+            "value": 0,
+        },
+        "slotType": "tunable_engine_sensors",
+        "slots": [
+            ["type", "default", "description"],
+            ["tunable_engine_O2_sensor", "narrowband_lambda_sensor", "O2 Sensor", {"coreSlot":true}],
+            ["tunable_engine_MAP_sensor", "136kPa_map_sensor", "MAP Sensor", {"coreSlot":true}],
+            ["knock_sensor", "knock_sensor", "Knock Sensor"],
+        ],
+    },
+
+    // O2 Sensors
+    "narrowband_lambda_sensor": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "Narrow Band O2 Sensor",
+            "value": 50
+        },
+
+        "slotType": "tunable_engine_O2_sensor",
+        "mainEngine": {
+            "lambdaSensor": {
+                "type": "nb",
+                "range": [0.68, 1.5],
+                "responseTime": 0.02,
+                "quality": 0.9
+            }
+        }
+    },
+    "wideband_lambda_sensor": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "Wide Band O2 Sensor",
+            "value": 120
+        },
+
+        "slotType": "tunable_engine_O2_sensor",
+        "mainEngine": {
+            "lambdaSensor": {
+                "type": "wb",
+                "range": [0.68, 1.5],
+                "responseTime": 0.15,
+                "quality": 0.95
+            }
+        }
+    },
+
+    // MAP Sensors
+    "136kPa_map_sensor": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "136kPa MAP Sensor",
+            "value": 25,
+        },
+
+        "slotType": "tunable_engine_MAP_sensor",
+        "mainEngine": {
+            "MAPSensor": {
+                "range": [0, 136],
+                "responseTime": 0.05,
+                "quality": 0.92,
+            }
+        }
+    },
+    "250kPa_map_sensor": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "250kPa MAP Sensor",
+            "value": 33,
+        },
+
+        "slotType": "tunable_engine_MAP_sensor",
+        "mainEngine": {
+            "MAPSensor": {
+                "range": [0, 250],
+                "responseTime": 0.045,
+                "quality": 0.95,
+            }
+        }
+    },
+    "350kPa_map_sensor": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "350kPa MAP Sensor",
+            "value": 40,
+        },
+
+        "slotType": "tunable_engine_MAP_sensor",
+        "mainEngine": {
+            "MAPSensor": {
+                "range": [0, 350],
+                "responseTime": 0.045,
+                "quality": 0.95,
+            }
+        }
+    },
+    "450kPa_map_sensor": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "450kPa MAP Sensor",
+            "value": 50,
+        },
+
+        "slotType": "tunable_engine_MAP_sensor",
+        "mainEngine": {
+            "MAPSensor": {
+                "range": [0, 450],
+                "responseTime": 0.04,
+                "quality": 0.97,
+            }
+        }
+    },
+
+    // knock sensors
+    "knock_sensor": {
+        "information": {
+            "authors": "BeamNG",
+            "name": "Knock Sensor",
+            "value": 60,
+        },
+
+        "slotType": "knock_sensor",
+        "mainEngine": {
+            "knockSensor": {
+                "knockThresholdFromSensitivity": [
+                    // [sensitivity [[%]], knock threshold [[ºATDC]]]
+                    [0,    0],
+                    [10,  -2],
+                    [20,  -1.5],
+                    [30,  -1],
+                    [40,   0],
+                    [50,   2],
+                    [60,   4],
+                    [70,   6],
+                    [80,   8],
+                    [90,  10],
+                    [100, 12],
+                    [110, 12]
+                ],
+                "responseTime": 0.04,
+                "quality": 0.97,
+            }
+        },
+    },
+}

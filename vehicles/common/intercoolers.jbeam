@@ -1,0 +1,70 @@
+{
+"tunable_engine_20x10x5_intercooler" : {
+    "information":{
+        "authors":"BeamNG",
+        "name":"20cm x 10cm x 5cm Intercooler",
+        "value":75,
+    },
+    "slotType" : "tunable_engine_intercooler",
+    "mainEngine": {
+        "intakeSystemIntercooler": {
+            "width": 0.2,
+            "height": 0.1,
+            "length": 0.05,
+            "airPassageSizeW": 0.002,
+            "airPassageSizeH": 0.002,
+        }
+    }
+},
+"tunable_engine_30x20x5_intercooler" : {
+    "information":{
+        "authors":"BeamNG",
+        "name":"30cm x 20cm x 5cm Intercooler",
+        "value":130,
+    },
+    "slotType" : "tunable_engine_intercooler",
+    "mainEngine": {
+        "intakeSystemIntercooler": {
+            "width": 0.3,
+            "height": 0.2,
+            "length": 0.05,
+            "airPassageSizeW": 0.002,
+            "airPassageSizeH": 0.002,
+        }
+    }
+},
+"tunable_engine_30x20x9_intercooler" : {
+    "information":{
+        "authors":"BeamNG",
+        "name":"30cm x 20cm x 9cm Intercooler",
+        "value":170,
+    },
+    "slotType" : "tunable_engine_intercooler",
+    "mainEngine": {
+        "intakeSystemIntercooler": {
+            "width": 0.3,
+            "height": 0.2,
+            "length": 0.09,
+            "airPassageSizeW": 0.0015,
+            "airPassageSizeH": 0.002,
+        }
+    }
+},
+"tunable_engine_50x30x9_intercooler" : {
+    "information":{
+        "authors":"BeamNG",
+        "name":"50cm x 30cm x 9cm Intercooler",
+        "value":378,
+    },
+    "slotType" : "tunable_engine_intercooler",
+    "mainEngine": {
+        "intakeSystemIntercooler": {
+            "width": 0.5,
+            "height": 0.3,
+            "length": 0.09,
+            "airPassageSizeW": 0.0012,
+            "airPassageSizeH": 0.0015,
+        }
+    }
+},
+}

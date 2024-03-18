@@ -165,7 +165,7 @@
     "tire_R_18x11":"tire_R_295_35_18_race",
     "tunable_engine_drive_by_wire_throttle_body":"drive_by_wire_throttle_body_50mm",
     "tunable_engine_fuel_pressure_regulator":"fuel_pressure_regulator_3bar",
-    "tunable_engine_fuel_pump":"fuel_pump_200l_h",
+    "tunable_engine_fuel_pump":"fuel_pump_125l_h",
     "wheel_F_5":"wheel_dreid_c70_18x11_F",
     "wheel_R_5":"wheel_dreid_c70_18x11_R"
   },

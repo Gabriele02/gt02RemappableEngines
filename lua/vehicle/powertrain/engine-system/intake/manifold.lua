@@ -2,6 +2,7 @@ local M = {}
 
 local throttle_actuator = require("vehicle.powertrain.engine-system.actuators.throttle")
 local runners = require("vehicle.powertrain.engine-system.intake.runners")
+local fpr = require("vehicle.powertrain.engine-system.actuators.fuelPressureRegulator")
 
 local combustionEngine = nil
 local engineMeasurements = nil
@@ -16,6 +17,8 @@ local function init(data, state)
     intakeMeasurements = data.intakeMeasurements
     combustionEngine = data.combustionEngine
     -- init components
+    state = fpr.init(data, state)
+
     state = throttle_actuator.init(data, state)
     state = runners.init(data, state)
 
@@ -50,7 +53,7 @@ local function calculateIntakePressureAndFlowInOutBalance(state, dt)
     -- IAT (intake air temperature) is measured in degrees Kelvin.
 
     --http://www.lightner.net/obd2guru/IMAP_AFcalc.html
-    local air_mass_flow = (IMAP / 60) * (state.volumetric_efficiency or 0) *
+    local air_mass_flow = ((IMAP or 0) / 60) * (state.volumetric_efficiency or 0) *
         (engineMeasurements.displacement_cc / 1000) * (28.97--[[MM Air]]) / (8.314--[[R]])--[[g/s]] / 1000 --[[g/s to kg/s]]
 
     local air_mass_flow_mg_s = air_mass_flow * 1000 --[[kg/s to g/s]] * 1000 --[[g/s to mg/s]] / engineMeasurements.num_cylinders
@@ -61,17 +64,19 @@ local function calculateIntakePressureAndFlowInOutBalance(state, dt)
     --return state
 end
 
-function update(state, dt) -- -> modifyed state
+local function update(state, dt) -- -> modifyed state
     -- 1 Throttle position
     throttle_actuator.update(state, dt)
 
     -- 2 Intake manifold pressure
     calculateIntakePressureAndFlowInOutBalance(state, dt)
 
-    -- 3 Runners
+    -- 3 Fuel pressure regulator (Should be fuel system when implemented)
+    fpr.update(state, dt)
+
+    -- 4 Runners
     runners.update(state, dt)
 
-    --return state
 end
 
 M.init = init

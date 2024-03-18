@@ -604,7 +604,7 @@
     },
     "mainEngine": {
         //turbocharger name`
-        "turbochargerLuaFileName" = "powertrain/ALSturbocharger",
+        "turbochargerLuaFileName": "powertrain/ALSturbocharger",
         "turbocharger":"turbocharger",
         "$*instantAfterFireCoef": 1.8,
         "$*sustainedAfterFireCoef": 1.25,
@@ -774,6 +774,87 @@
           {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
     ],
 },
+"etk_tunable_engine_i6_forced_induction_stock_intake": {
+    "information":{
+        "authors":"BeamNG",
+        "name":"Stock Intake",
+        "value":250,
+    },
+    "slotType" : "etk_tunable_engine_i6_forced_induction",
+    "flexbodies": [
+        ["mesh", "[group]:", "nonFlexMaterials"],
+        ["etk_header_i6", ["etk_engine", "etk_header"],[]{"pos":{"x":0,"y":0,"z":0}}],
+        ["etk_intake_i6", ["etk_engine","etk_airbox"],[]{"pos":{"x":0,"y":0,"z":0}}],
+    ],
+    "nodes": [
+         ["id", "posX", "posY", "posZ"],
+         {"selfCollision":false},
+         {"collision":true},
+         {"frictionCoef":0.5},
+
+         //exhaust manifold
+         {"nodeWeight":3.0},
+         {"group":"etk_header"},
+         ["exm1r", -0.2, -0.9, 0.27],
+
+         //airbox
+         {"nodeWeight":1.0},
+         {"group":"etk_airbox"},
+         {"nodeMaterial":"|NM_PLASTIC"},
+         ["airb1", 0.35, -1.75, 0.8],
+         ["airb2", -0.35, -1.9, 0.76],
+         {"engineGroup":""},
+         {"group":""},
+    ],
+    "beams": [
+          ["id1:", "id2:"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+
+          //exhaust manifold
+          {"beamSpring":2750550,"beamDamp":125},
+          {"beamDeform":30000,"beamStrength":"FLT_MAX"},
+          ["exm1r", "e1r"],
+          ["exm1r", "e1l"],
+          ["exm1r", "e2r"],
+          ["exm1r", "e2l"],
+          ["exm1r", "e3r"],
+          ["exm1r", "e3l"],
+          ["exm1r", "e4r", {"isExhaust":"mainEngine"}],
+          ["exm1r", "e4l"],
+
+          //airbox
+          {"beamSpring":101000,"beamDamp":300},
+          {"beamDeform":3000,"beamStrength":25000},
+          {"deformGroup":"mainEngine_intake", "deformationTriggerRatio":0.01}
+          ["airb1", "e3r"],
+          ["airb1", "e3l"],
+          ["airb1", "e4r"],
+          ["airb1", "e4l"],
+          ["airb1", "e2l"],
+          ["airb1", "e2r"],
+          ["airb2", "e3r"],
+          ["airb2", "e3l"],
+          ["airb2", "e4r"],
+          ["airb2", "e4l"],
+          ["airb2", "e2l"],
+          ["airb2", "e2r"],
+          ["airb2", "airb1"],
+          {"deformGroup":""}
+
+           //attach to body
+          {"beamDeform":2000,"beamStrength":15000},
+          ["airb2", "f13rr"],
+          ["airb2", "f15r"],
+          ["airb2", "f15"],
+          ["airb2", "f11rr"],
+          ["airb2", "f15rr"],
+
+          ["airb1", "f12ll"],
+          ["airb1", "f15ll"],
+          ["airb1", "f13ll"],
+          {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+    ],
+},
 "etk_tunable_engine_i6_intake_system" : {
     "information":{
         "authors":"BeamNG",
@@ -785,7 +866,8 @@
         ["type", "default", "description"],
         ["etk_tunable_engine_runers_i6","etk_fixed_runners3x30", "Intake", {"coreSlot":true}],
         ["tunable_engine_drive_by_wire_throttle_body","drive_by_wire_throttle_body_40mm", "Throttle Body", {"coreSlot":true}],
-        ["etk_tunable_engine_i6_forced_induction","etk_tunable_engine_i6_forced_induction_small_turbocharger", "Forced Induction"],
+        ["etk_tunable_engine_i6_forced_induction","etk_tunable_engine_i6_forced_induction_stock_intake", "Forced Induction", {"coreSlot":true}],
+        ["tunable_engine_intercooler","", "Intercooler"],
     ],
 },
 
@@ -798,11 +880,11 @@
     "slotType" : "etk_tunable_engine_i6_fuel_system",
     "slots": [
         ["type", "default", "description"],
-        ["tunable_engine_fuel_pump","fuel_pump_200l_h", "Fuel Pump", {"coreSlot":true}],
+        ["tunable_engine_fuel_pump", "fuel_pump_125l_h", "Fuel Pump", {"coreSlot":true}],
         ["tunable_engine_fuel_pressure_regulator", "fuel_pressure_regulator_3bar", "Fuel Pressure Regulator", {"coreSlot":true}],
         ["port_injectors", "port_injectors_236cc_min", "Port Injectors", {"coreSlot":true}],
     ],
-}
+},
 
 "etk_tunable_engine_i6.0": {
     "information":{
@@ -819,6 +901,8 @@
         ["etk_tunable_engine_i6_fuel_system","etk_tunable_engine_i6_fuel_system", "Fuel System", {"coreSlot":true}],
         ["etk_exhaust_i6_3.0_petrol","etk_exhaust_i6_3.0_petrol", "Exhaust"],
         ["etk_engine_i6_3.0_petrol_ecu","etk_engine_i6_3.0_petrol_ecu_na_270", "Engine Management", {"coreSlot":true}],
+        ["tunable_engine_sensors", "tunable_engine_sensors", "Sensors", {"coreSlot":true}],
+        
         //["n2o_system","", "Nitrous Oxide System"],
         //["etk_engine_i6_3.0_petrol_internals","etk_engine_i6_3.0_petrol_internals", "Engine Long Block", {"coreSlot":true}],
         ["etk_transmission","etk_transmission_6M", "Transmission"],
